@@ -172,7 +172,40 @@ public class Model extends Observable {
      * 2. There are two adjacent tiles with the same value.
      */
     public static boolean atLeastOneMoveExists(Board b) {
-        // TODO: Fill in this function.
+        if (emptySpaceExists(b)) {
+            return true;
+        }
+        for (int i = 0; i < b.size(); i++) {
+            for (int j = 0; j < b.size(); j++) {
+                if (checkForMoves(b, i, j)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Helper method for atLeastOneMoveExists().
+     * Returns true if an input tile has an adjacent
+     * tile with the same value, i.e. if the tile can
+     * be combined with another tile on the full board.
+     */
+    private static boolean checkForMoves(Board b, int subI, int subJ) {
+        int size = b.size();
+        for (int curI = subI - 1; curI <= subI + 1; curI++) {
+            for (int curJ = subJ - 1; curJ <= subJ + 1; curJ++) {
+                if (curI < 0 || curJ < 0) {
+                    continue;
+                } else if (curI >= size || curJ >= size) {
+                    break;
+                } else if ((curI == subI) != (curJ == subJ)) {
+                    if (b.tile(curI, curJ).value() == b.tile(subI, subJ).value()) {
+                        return true;
+                    }
+                }
+            }
+        }
         return false;
     }
 
