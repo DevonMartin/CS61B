@@ -195,14 +195,12 @@ public class Model extends Observable {
         int size = b.size();
         for (int curI = subI - 1; curI <= subI + 1; curI++) {
             for (int curJ = subJ - 1; curJ <= subJ + 1; curJ++) {
-                if (curI < 0 || curJ < 0) {
+                if (curI < 0 || curJ < 0 || (curI == subI) == (curJ == subJ)) {
                     continue;
                 } else if (curI >= size || curJ >= size) {
                     break;
-                } else if ((curI == subI) != (curJ == subJ)) {
-                    if (b.tile(curI, curJ).value() == b.tile(subI, subJ).value()) {
-                        return true;
-                    }
+                } else if (b.tile(curI, curJ).value() == b.tile(subI, subJ).value()) {
+                    return true;
                 }
             }
         }
