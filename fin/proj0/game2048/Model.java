@@ -1,7 +1,6 @@
 package game2048;
 
-import java.util.Formatter;
-import java.util.Observable;
+import java.util.*;
 
 
 /** The state of a game of 2048.
@@ -107,18 +106,95 @@ public class Model extends Observable {
      *    and the trailing tile does not.
      * */
     public boolean tilt(Side side) {
-        boolean changed;
-        changed = false;
-
-        // TODO: Modify this.board (and perhaps this.score) to account
-        // for the tilt to the Side SIDE. If the board changed, set the
-        // changed local variable to true.
-
+        board.setViewingPerspective(side);
+        boolean changed = false;
+        int boardSize = board.size();
+        Tile[] updatedTiles = new Tile[(int)Math.pow(boardSize, 2)/2];
+        for (int col = 0; col < boardSize; col++) {
+            for (int row = boardSize - 2; row >= 0; row--) {
+                Tile subjectTile = board.tile(col, row);
+                if (subjectTile != null && canMove(subjectTile, col, row)) {
+                    score += moveTile(subjectTile, updatedTiles, col, row);
+                    changed = true;
+                }
+            }
+        }
         checkGameOver();
         if (changed) {
             setChanged();
         }
+        board.setViewingPerspective(Side.NORTH);
         return changed;
+    }
+
+    /**
+     * Returns whether a tile can be moved or not. A tile
+     * can be moved if the space above it is null, or if
+     * the tile at the space above it has the same value.
+     *
+     * The tile above it cannot have already been combined
+     * with another tile, which would invalidate its
+     * eligibility as a candidate, for if it had combined,
+     * it wouldn't be directly above the subject tile.
+     *
+     * @param tileBeingChecked the subject tile being checked
+     * @param col              the North-facing column of TILEBEINGCHECKED
+     * @param row              the North-facing row of TILEBEINGCHECKED
+     * @return                 boolean whether the tile can be moved
+     */
+    private boolean canMove(Tile tileBeingChecked, int col, int row) {
+        Tile tarT = board.tile(col, row+1);
+        return (tarT == null || tarT.value() == tileBeingChecked.value());
+    }
+
+    /**
+     * Returns the additional score gained from moving a tile by
+     * finding out where to move the tile, moving it, and if
+     * the move leads to a tile combination, returning the value
+     * of the tile created.
+     *
+     * @param tileBeingMoved self-explanatory
+     * @param updatedTiles   array of tiles already combined this turn
+     * @param col            the North-facing column of TILEBEINGMOVED
+     * @param row            the North-facing row of TILEBEINGMOVED
+     * @return               the score gained on this turn
+     */
+    private int moveTile(Tile tileBeingMoved, Tile[] updatedTiles, int col, int row) {
+
+        int moveToRow = row + 1, size = board.size();
+        while (moveToRow < size && board.tile(col, moveToRow) == null) {
+            moveToRow++;
+        }
+
+        if (moveToRow == size) {
+            moveToRow--;
+        } else if (board.tile(col, moveToRow) != null) {
+            Tile t = board.tile(col, moveToRow);
+            if (t.value() != tileBeingMoved.value() || tileAlreadyUpdated(t, updatedTiles)) {
+                moveToRow--;
+            }
+        }
+
+        Side n = Side.NORTH;
+        int score = 0, finCol = n.col(col, moveToRow, size), finRow = n.row(col, moveToRow, size);
+        if (board.move(finCol, finRow, tileBeingMoved)) {
+            int iUpdatedTiles = 0;
+            while (updatedTiles[iUpdatedTiles] != null) {
+                iUpdatedTiles++;
+            }
+            updatedTiles[iUpdatedTiles] = board.tile(col, moveToRow);
+            score = board.tile(col, moveToRow).value();
+        }
+        return score;
+    }
+
+    private static boolean tileAlreadyUpdated(Tile t, Tile[] updatedTiles) {
+        for (Tile tarT : updatedTiles) {
+            if (t == tarT) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Checks if the game is over and sets the gameOver variable
@@ -177,7 +253,7 @@ public class Model extends Observable {
         }
         for (int i = 0; i < b.size(); i++) {
             for (int j = 0; j < b.size(); j++) {
-                if (checkForMoves(b, i, j)) {
+                if (checkForMoves(b, b.tile(i, j))) {
                     return true;
                 }
             }
@@ -190,16 +266,20 @@ public class Model extends Observable {
      * Returns true if an input tile has an adjacent
      * tile with the same value, i.e. if the tile can
      * be combined with another tile on the full board.
+     *
+     * @param b the board of the game
+     * @param t the subject tile being checked for moves
+     * @return  boolean whether a move exists
      */
-    private static boolean checkForMoves(Board b, int subI, int subJ) {
-        int size = b.size();
+    private static boolean checkForMoves(Board b, Tile t) {
+        int size = b.size(), subI = t.col(), subJ = t.row();
         for (int curI = subI - 1; curI <= subI + 1; curI++) {
             for (int curJ = subJ - 1; curJ <= subJ + 1; curJ++) {
                 if (curI < 0 || curJ < 0 || (curI == subI) == (curJ == subJ)) {
                     continue;
                 } else if (curI >= size || curJ >= size) {
                     break;
-                } else if (b.tile(curI, curJ).value() == b.tile(subI, subJ).value()) {
+                } else if (b.tile(curI, curJ).value() == t.value()) {
                     return true;
                 }
             }
