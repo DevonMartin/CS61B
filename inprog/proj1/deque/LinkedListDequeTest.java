@@ -118,7 +118,7 @@ public class LinkedListDequeTest {
         }
     }
 	@Test
-	/* Add large number of elements to deque; check if order is correct. */
+	/* Add large number of elements to deque; check if .get works correctly throughout the deque. */
 	public void getDequeTest() {
 		LinkedListDeque<Integer> lld1 = new LinkedListDeque<>();
 
@@ -136,4 +136,23 @@ public class LinkedListDequeTest {
             assertEquals("Should have the same value", 5000-i, actual);
 		}
 	}
+    @Test
+    /* Add large number of elements to deque; check if .get works correctly throughout the deque. */
+    public void getRDequeTest() {
+        LinkedListDeque<Integer> lld1 = new LinkedListDeque<>();
+
+        lld1.addFirst(5);
+        int expected = 5;
+        int actual = lld1.getRecursive(0);
+        assertEquals("Should have the same value", expected, actual);
+
+        lld1.removeFirst();
+        for (int i = 0; i <= 5000; i++) {
+            lld1.addLast(5000 - i);
+        }
+        for (int i = 0; i <= 5000; i++) {
+            actual = lld1.getRecursive(i);
+            assertEquals("Should have the same value", 5000 - i, actual);
+        }
+    }
 }

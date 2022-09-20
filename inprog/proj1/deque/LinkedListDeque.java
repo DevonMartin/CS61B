@@ -1,58 +1,62 @@
 package deque;
 
-public class LinkedListDeque<Item> {
-    private class LinkedList<Item> {
-        Item item;
+public class LinkedListDeque<T> {
+    /** Subclass utilized by LinkedListDeque
+     *
+     * @param <T> the item stored at the node.
+     */
+    private class LinkedList<T> {
+        T t;
         LinkedList next;
         LinkedList last;
-        LinkedList(Item item) {
-            this.item = item;
-            this.next = this;
-            this.last = this;
+        LinkedList(T t) {
+            this.t = t;
         }
     }
     private int size;
-    LinkedList sentinel;
+    private LinkedList sentinel;
 
     public LinkedListDeque() {
         sentinel = new LinkedList(0);
+        sentinel.next = sentinel;
+        sentinel.last = sentinel;
         size = 0;
     }
-    public void addFirst(Item item) {
-        LinkedList tmp = new LinkedList(item);
+    public void addFirst(T t) {
+        LinkedList tmp = new LinkedList(t);
         tmp.next = sentinel.next;
         tmp.next.last = tmp;
         tmp.last = sentinel;
         sentinel.next = tmp;
         size++;
     }
-    public Item removeFirst() {
+    public T removeFirst() {
         if (size == 0) {
             return null;
         }
-        Item returnItem = (Item) sentinel.next.item;
+        T returnT = (T) sentinel.next.t;
         sentinel.next = sentinel.next.next;
         sentinel.next.last = sentinel;
         size--;
-        return returnItem;
+        return returnT;
     }
-    public void addLast(Item item) {
-        LinkedList tmp = new LinkedList(item);
+    public void addLast(T t) {
+        LinkedList tmp = new LinkedList(t);
         tmp.last = sentinel.last;
         tmp.last.next = tmp;
         tmp.next = sentinel;
         sentinel.last = tmp;
         size++;
     }
-    public Item removeLast() {
+    public T removeLast() {
         if (size == 0) {
             return null;
         }
-        Item returnItem = (Item) sentinel.last.item;
+        T returnT = (T) sentinel.last.t;
         sentinel.last = sentinel.last.last;
         sentinel.last.next = sentinel;
         size--;
-        return returnItem;
+        return returnT;
     }
     public boolean isEmpty() {
         return size == 0;
@@ -60,42 +64,66 @@ public class LinkedListDeque<Item> {
     public int size() {
         return size;
     }
-    public Item get(int index) {
+    public T get(int index) {
         if (index < size / 2) {
             return getFromFront(index);
         }
         return getFromBack(index);
     }
-    private Item getFromFront(int i) {
+    private T getFromFront(int i) {
         LinkedList cur = sentinel.next;
         for (int j = 0; j < i; j++) {
             cur = cur.next;
         }
-        return (Item) cur.item;
+        return (T) cur.t;
     }
-    private Item getFromBack(int i) {
+    private T getFromBack(int i) {
         LinkedList cur = sentinel.last;
         for (int j = size-1; j > i; j--) {
             cur = cur.last;
         }
-        return (Item) cur.item;
+        return (T) cur.t;
+    }
+    public T getRecursive(int index) {
+        if (index < size / 2) {
+            return (T) getFromFrontR(index, sentinel.next);
+        }
+        return (T) getFromBackR(index, sentinel.last);
+    }
+    private T getFromFrontR(int i, LinkedList cur) {
+        if (i == 0) {
+            return (T) cur.t;
+        }
+        return (T) getFromFrontR(i-1, cur.next);
+    }
+    private T getFromBackR(int i, LinkedList cur) {
+        if (i == size-1) {
+            return (T) cur.t;
+        }
+        return (T) getFromBackR(i+1, cur.last);
     }
     public void printDeque() {
         LinkedList cur = sentinel.next;
         int size = this.size;
         while (size > 1) {
-            System.out.print(cur.item + " ");
+            System.out.print(cur.t + " ");
             cur = cur.next;
             size--;
         }
-        System.out.println(cur.item);
+        System.out.println(cur.t);
     }
+//    public Iterator<Item> iterator() {
+//
+//    }
+//    public boolean equals(Object o) {
+//
+//    }
 }
 
-//public T get(int index): Gets the item at the given index, where 0 is the front, 1 is the next item, and so forth. If no such item exists, returns null. Must not alter the deque!
+//public Iterator<T> iterator(): The Deque objects we’ll make are iterable (i.e. Iterable<T>)
+//so we must provide this method to return an iterator.
 
-//public T getRecursive(int index): Same as get, but uses recursion.
-
-//public Iterator<T> iterator(): The Deque objects we’ll make are iterable (i.e. Iterable<T>) so we must provide this method to return an iterator.
-
-//public boolean equals(Object o): Returns whether the parameter o is equal to the Deque. o is considered equal if it is a Deque and if it contains the same contents (as goverened by the generic T’s equals method) in the same order. (ADDED 2/12: You’ll need to use the instance of keywords for this. Read here for more information)
+//public boolean equals(Object o): Returns whether the parameter o is equal to the Deque.
+//o is considered equal if it is a Deque and if it contains the same contents
+//(as governed by the generic T’s equals method) in the same order.
+//(ADDED 2/12: You’ll need to use the instance of keywords for this. Read here for more information)
