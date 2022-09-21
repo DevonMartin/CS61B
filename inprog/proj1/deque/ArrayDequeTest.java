@@ -90,7 +90,6 @@ public class ArrayDequeTest {
 
         assertEquals("Should return null when removeFirst is called on an empty Deque,", null, ad1.removeFirst());
         assertEquals("Should return null when removeLast is called on an empty Deque,", null, ad1.removeLast());
-
     }
     @Test
     /* Add large number of elements to deque; check if order is correct. */
@@ -138,11 +137,19 @@ public class ArrayDequeTest {
         for (int i = 0; i < 10; i++) {
             ad1.addFirst(i);
         }
+
         assertEquals("Should have the same value", 4.0, (double) ad1.get(5), 0.0);
+
         int size = ad1.size;
-        for (int i = 0; i < size; i++) {
-            ad1.removeFirst();
+        for (int i = 0; i < 10; i++) {
+            int actual = ad1.removeFirst();
+            assertEquals(9-i, actual);
         }
+        for (int i = 0; i < 10; i++) {
+            int actual = ad1.removeFirst();
+            assertEquals(i, actual);
+        }
+
         assertTrue("Deque should be empty after removing all items.", ad1.isEmpty());
     }
     @Test
