@@ -103,12 +103,9 @@ public class LinkedListDeque<T> {
         return (T) getFromBackR(i+1, cur.last);
     }
     public void printDeque() {
-        LinkedList cur = sentinel.next;
-        int size = this.size;
-        while (size > 1) {
+        LinkedList cur;
+        for (cur = sentinel.next; cur.next != sentinel; cur = cur.next) {
             System.out.print(cur.t + " ");
-            cur = cur.next;
-            size--;
         }
         System.out.println(cur.t);
     }

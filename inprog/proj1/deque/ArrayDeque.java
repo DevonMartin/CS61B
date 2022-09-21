@@ -137,12 +137,6 @@ public class ArrayDeque<T> {
 //    }
 }
 
-//public T removeFirst(): Removes and returns the item at the front of the deque.
-//If no such item exists, returns null.
-
-//public T removeLast(): Removes and returns the item at the back of the deque.
-//If no such item exists, returns null.
-
 //public Iterator<T> iterator(): The Deque objects we’ll make are iterable (i.e. Iterable<T>)
 //so we must provide this method to return an iterator.
 
