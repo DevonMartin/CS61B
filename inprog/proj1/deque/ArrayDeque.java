@@ -12,21 +12,20 @@ public class ArrayDeque<T> {
         size = 0;
         items = (T[]) new Object[8];
     }
-    private void increaseArraySize() {
-        T[] tmp = (T[]) new Object[size*2];
+    private void changeArraySize(T[] tmp) {
         if (endIndex > startIndex) {
             System.arraycopy(items, startIndex, tmp, startIndex, size);
         } else {
-            System.arraycopy(items, startIndex, tmp, 0, size-endIndex-1);
-            System.arraycopy(items, 0, tmp, size-endIndex-1, endIndex+1);
+            System.arraycopy(items, startIndex, tmp, 0, size-endIndex);
+            System.arraycopy(items, 0, tmp, size-endIndex, endIndex);
             startIndex = 0;
-            endIndex = size-1;
+            endIndex = size;
         }
         items = tmp;
     }
     public void addFirst(T t) {
         if (size == items.length) {
-            increaseArraySize();
+            changeArraySize((T[]) new Object[size*2]);
         }
         if (startIndex == endIndex) {
             items[0] = t;
@@ -45,7 +44,7 @@ public class ArrayDeque<T> {
 //    }
     public void addLast(T t) {
         if (size == items.length) {
-            increaseArraySize();
+            changeArraySize((T[]) new Object[size*2]);
         }
         if (endIndex == items.length) {
             endIndex = 0;
@@ -66,6 +65,12 @@ public class ArrayDeque<T> {
         return size;
     }
     public T get(int index) {
+        if (startIndex >= endIndex) {
+            index += startIndex;
+            if (index >= items.length) {
+                index -= items.length;
+            }
+        }
         return (T) items[index];
     }
     public void printDeque() {

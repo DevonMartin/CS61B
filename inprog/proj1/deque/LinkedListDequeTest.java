@@ -9,9 +9,7 @@ public class LinkedListDequeTest {
 
     @Test
     /** Adds a few things to the list, checking isEmpty() and size() are correct,
-     * finally printing the results.
-     *
-     * && is the "and" operation. */
+     * finally printing the results. */
     public void addIsEmptySizeTest() {
 
         LinkedListDeque<String> lld1 = new LinkedListDeque<String>();
@@ -19,8 +17,6 @@ public class LinkedListDequeTest {
 		assertTrue("A newly initialized LLDeque should be empty", lld1.isEmpty());
 		lld1.addFirst("front");
 
-		// The && operator is the same as "and" in Python.
-		// It's a binary operator that returns true if both arguments true, and false otherwise.
         assertEquals(1, lld1.size());
         assertFalse("lld1 should now contain 1 item", lld1.isEmpty());
 
@@ -154,5 +150,23 @@ public class LinkedListDequeTest {
             actual = lld1.getRecursive(i);
             assertEquals("Should have the same value", 5000 - i, actual);
         }
+    }
+    @Test
+    public void zeroFourZeroFourDequeTest() {
+        LinkedListDeque<Integer> lld1 = new LinkedListDeque<>();
+
+        for (int i = 0; i < 4; i++) {
+            lld1.addLast(i);
+        }
+        assertEquals("Should have the same value", 4, lld1.size());
+        for (int i = 0; i < 4; i++) {
+            lld1.removeFirst();
+        }
+        assertEquals("Should have the same value", 0, lld1.size());
+        for (int i = 0; i < 4; i++) {
+            lld1.addLast(i);
+        }
+        assertEquals("Should have the same value", 4, lld1.size());
+
     }
 }

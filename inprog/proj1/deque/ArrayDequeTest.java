@@ -34,9 +34,13 @@ public class ArrayDequeTest {
     public void listGrows() {
 
         ArrayDeque<Integer> ad1 = new ArrayDeque<Integer>();
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < 10; i++) {
             ad1.addLast(i);
         }
+        for (int i = 0; i < 10; i++) {
+            ad1.addFirst(i);
+        }
+        assertEquals("Should have the same value", 4.0, (double) ad1.get(5), 0.0);
         ad1.printDeque();
     }
 }
