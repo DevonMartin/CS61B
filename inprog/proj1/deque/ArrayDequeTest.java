@@ -1,5 +1,6 @@
 package deque;
 
+import edu.princeton.cs.algs4.StdRandom;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -140,7 +141,7 @@ public class ArrayDequeTest {
 
         assertEquals("Should have the same value", 4.0, (double) ad1.get(5), 0.0);
 
-        int size = ad1.size;
+        int size = ad1.size();
         for (int i = 0; i < 10; i++) {
             int actual = ad1.removeFirst();
             assertEquals(9-i, actual);
@@ -179,6 +180,46 @@ public class ArrayDequeTest {
         ad1.removeFirst();
         for (int i = 0; i < 10; i++) {
             ad1.addLast(i+2);
+        }
+    }
+    @Test
+    public void findRecreatableFailureTest() {
+        ArrayDeque<Integer> ad1 = new ArrayDeque<>();
+
+        for (int i = 0; i < 50000000; i+=2) {
+            ad1.addFirst(i);
+            ad1.addLast(i+1);
+            ad1.addFirst(i);
+            ad1.removeFirst();
+            ad1.addLast(i+1);
+            ad1.removeLast();
+        }
+    }
+    @Test
+    public void randomAddAndSubTest() {
+        ArrayDeque<Integer> ad1 = new ArrayDeque<>();
+        int size = ad1.size();
+
+        for (int i = 0; i < 50000000; i++) {
+            boolean rnd = StdRandom.bernoulli(0.5);
+            if (rnd) {
+                rnd = StdRandom.bernoulli();
+                if (rnd) {
+                    ad1.addFirst(i);
+                } else {
+                    ad1.addLast(i);
+                }
+                size++;
+            } else {
+                rnd = StdRandom.bernoulli();
+                if (rnd) {
+                    ad1.removeFirst();
+                } else {
+                    ad1.removeLast();
+                }
+                size = Math.max(size-1, 0);
+            }
+            assertEquals(size, ad1.size());
         }
     }
 }

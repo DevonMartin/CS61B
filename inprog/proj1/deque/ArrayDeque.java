@@ -1,10 +1,10 @@
 package deque;
 
 public class ArrayDeque<T> {
-    int startIndex;
-    int endIndex;
-    int size;
-    T[] items;
+    private int startIndex;
+    private int endIndex;
+    private int size;
+    private T[] items;
 
     public ArrayDeque() {
         startIndex = 0;
@@ -16,8 +16,8 @@ public class ArrayDeque<T> {
         if (endIndex > startIndex) {
             System.arraycopy(items, startIndex, tmp, 0, size);
         } else {
-            System.arraycopy(items, startIndex, tmp, 0, size-startIndex);
-            System.arraycopy(items, 0, tmp, size-startIndex, endIndex);
+            System.arraycopy(items, startIndex, tmp, 0, items.length-startIndex);
+            System.arraycopy(items, 0, tmp, items.length-startIndex, endIndex);
         }
         startIndex = 0;
         endIndex = size;
@@ -56,9 +56,9 @@ public class ArrayDeque<T> {
         size--;
         if (size != 0) {
             startIndex++;
-        }
-        if (startIndex == items.length) {
-            startIndex = 0;
+            if (startIndex == items.length) {
+                startIndex = 0;
+            }
         }
         return returnItem;
     }
@@ -69,8 +69,8 @@ public class ArrayDeque<T> {
         if (size == 0) {
             addFirstItem(t);
         } else if (endIndex == items.length) {
-            endIndex = 0;
-            items[endIndex] = t;
+            endIndex = 1;
+            items[endIndex-1] = t;
         } else {
             items[endIndex] = t;
             endIndex++;
@@ -82,8 +82,11 @@ public class ArrayDeque<T> {
             return null;
         }
         int length = items.length;
-        if ((size - 1.0) / length < 0.25) {
+        if (length > 8 && (size - 1.0) / length < 0.25) {
             changeArraySize((T[]) new Object[length/2]);
+        }
+        if (endIndex == 0) {
+            endIndex = length;
         }
         T returnItem = items[endIndex-1];
         items[endIndex-1] = null;
