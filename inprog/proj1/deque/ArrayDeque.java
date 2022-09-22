@@ -1,5 +1,7 @@
 package deque;
 
+import java.util.Iterator;
+
 public class ArrayDeque<T> {
     private int startIndex;
     private int endIndex;
@@ -129,7 +131,7 @@ public class ArrayDeque<T> {
             }
         }
     }
-//    public Iterator<Item> iterator() {
+//    public Iterator<T> iterator() {
 //
 //    }
 //    public boolean equals(Object o) {
