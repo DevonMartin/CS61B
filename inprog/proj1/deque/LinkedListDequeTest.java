@@ -1,15 +1,17 @@
 package deque;
 
+import edu.princeton.cs.algs4.StdRandom;
 import org.junit.Test;
+
 import static org.junit.Assert.*;
 
 
 /** Performs some basic linked list tests. */
 public class LinkedListDequeTest {
 
-    @Test
     /** Adds a few things to the list, checking isEmpty() and size() are correct,
      * finally printing the results. */
+    @Test
     public void addIsEmptySizeTest() {
 
         LinkedListDeque<String> lld1 = new LinkedListDeque<>();
@@ -30,8 +32,8 @@ public class LinkedListDequeTest {
 		lld1.printDeque();
     }
 
-    @Test
     /** Adds an item, then removes an item, and ensures that dll is empty afterwards. */
+    @Test
     public void addRemoveTest() {
 
         LinkedListDeque<Integer> lld1 = new LinkedListDeque<>();
@@ -88,8 +90,8 @@ public class LinkedListDequeTest {
 
         LinkedListDeque<Integer> lld1 = new LinkedListDeque<>();
 
-        assertEquals("Should return null when removeFirst is called on an empty Deque,", null, lld1.removeFirst());
-        assertEquals("Should return null when removeLast is called on an empty Deque,", null, lld1.removeLast());
+        assertNull("Should return null when removeFirst is called on an empty Deque,", lld1.removeFirst());
+        assertNull("Should return null when removeLast is called on an empty Deque,", lld1.removeLast());
 
     }
     @Test
@@ -176,6 +178,33 @@ public class LinkedListDequeTest {
         }
     }
     @Test
+    public void randomAddAndSubTest() {
+        LinkedListDeque<Integer> ad1 = new LinkedListDeque<>();
+        int size = ad1.size();
+
+        for (int i = 0; i < 50000000; i++) {
+            boolean rnd = StdRandom.bernoulli(0.5);
+            if (rnd) {
+                rnd = StdRandom.bernoulli();
+                if (rnd) {
+                    ad1.addFirst(i);
+                } else {
+                    ad1.addLast(i);
+                }
+                size++;
+            } else {
+                rnd = StdRandom.bernoulli();
+                if (rnd) {
+                    ad1.removeFirst();
+                } else {
+                    ad1.removeLast();
+                }
+                size = Math.max(size-1, 0);
+            }
+            assertEquals(size, ad1.size());
+        }
+    }
+    @Test
     public void iteratorTest() {
         LinkedListDeque<Integer> lld1 = new LinkedListDeque<>();
         lld1.addFirst(3);
@@ -200,7 +229,7 @@ public class LinkedListDequeTest {
         ad1.addFirst(2);
         ad1.addFirst(1);
         ad1.addFirst(0);
-        assertTrue(lld1.equals(ad1));
-        assertTrue(ad1.equals(lld1));
+        assertEquals(lld1, ad1);
+        assertEquals(ad1, lld1);
     }
 }
