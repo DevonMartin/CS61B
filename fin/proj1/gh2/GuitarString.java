@@ -12,8 +12,8 @@ public class GuitarString {
     private static final double DECAY = .996; // energy decay factor
 
     /* Buffer for storing sound data. */
-     private Deque<Double> buffer = new ArrayDeque<>();
-     int size;
+    private Deque<Double> buffer = new ArrayDeque<>();
+    private int size;
 
     /* Create a guitar string of the given frequency.  */
     public GuitarString(double frequency) {
@@ -26,7 +26,9 @@ public class GuitarString {
 
     /* Pluck the guitar string by replacing the buffer with white noise. */
     public void pluck() {
-        while (buffer.removeFirst() != null);
+        while (!(buffer.isEmpty())) {
+            buffer.removeFirst();
+        }
         for (int i = 0; i < size; i++) {
             buffer.addFirst(Math.random() - 0.5);
         }
@@ -36,7 +38,7 @@ public class GuitarString {
      * the Karplus-Strong algorithm.
      */
     public void tic() {
-        buffer.addLast((buffer.removeFirst() + buffer.get(0)) / 2 * 0.996);
+        buffer.addLast((buffer.removeFirst() + buffer.get(0)) / 2 * DECAY);
     }
 
     /* Return the double at the front of the buffer. */
@@ -44,4 +46,3 @@ public class GuitarString {
         return buffer.get(0);
     }
 }
-    // TODO: Remove all comments that say TODO when you're done.
