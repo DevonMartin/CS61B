@@ -3,13 +3,13 @@ package deque;
 import java.util.Iterator;
 /** A deque built on top of an array */
 public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
-    private class ArrayDequeIterator<T2> implements Iterator<T2> {
+    private class ArrayDequeIterator implements Iterator<T> {
         int pos = startIndex;
         public boolean hasNext() {
             return pos != endIndex;
         }
-        public T2 next() {
-            T2 returnItem = (T2) items[pos];
+        public T next() {
+            T returnItem = items[pos];
             if (pos == items.length - 1) {
                 pos = -1;
             }
@@ -153,7 +153,7 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
         }
     }
     public Iterator<T> iterator() {
-        return new ArrayDequeIterator<>();
+        return new ArrayDequeIterator();
     }
     public boolean equals(Object o) {
         if (!(o instanceof Deque) || size != ((Deque<?>) o).size()) {

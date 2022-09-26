@@ -3,16 +3,16 @@ package deque;
 import java.util.Iterator;
 
 public class LinkedListDeque<T> implements Deque<T>, Iterable<T> {
-    private class LinkedListDequeIterator<T2> implements Iterator<T2> {
-        LinkedList<T2> cur = (LinkedList<T2>) sentinel.next;
+    private class LinkedListDequeIterator implements Iterator<T> {
+        LinkedList<T> cur = sentinel.next;
         @Override
         public boolean hasNext() {
             return cur != sentinel;
         }
 
         @Override
-        public T2 next() {
-            T2 returnItem = cur.t;
+        public T next() {
+            T returnItem = cur.t;
             cur = cur.next;
             return returnItem;
         }
@@ -145,7 +145,7 @@ public class LinkedListDeque<T> implements Deque<T>, Iterable<T> {
         System.out.println(cur.t);
     }
     public Iterator<T> iterator() {
-        return new LinkedListDequeIterator<>();
+        return new LinkedListDequeIterator();
     }
     public boolean equals(Object o) {
         if (!(o instanceof Deque) || size != ((Deque<?>) o).size()) {
