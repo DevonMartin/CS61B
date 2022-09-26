@@ -183,19 +183,6 @@ public class ArrayDequeTest {
         }
     }
     @Test
-    public void findRecreatableFailureTest() {
-        ArrayDeque<Integer> ad1 = new ArrayDeque<>();
-
-        for (int i = 0; i < 50000000; i+=2) {
-            ad1.addFirst(i);
-            ad1.addLast(i+1);
-            ad1.addFirst(i);
-            ad1.removeFirst();
-            ad1.addLast(i+1);
-            ad1.removeLast();
-        }
-    }
-    @Test
     public void randomAddAndSubTest() {
         ArrayDeque<Integer> ad1 = new ArrayDeque<>();
         int size = ad1.size();
@@ -221,5 +208,33 @@ public class ArrayDequeTest {
             }
             assertEquals(size, ad1.size());
         }
+    }
+    @Test
+    public void iteratorTest() {
+        ArrayDeque<Integer> ad1 = new ArrayDeque<>();
+        ad1.addFirst(3);
+        ad1.addFirst(2);
+        ad1.addFirst(1);
+        ad1.addFirst(0);
+        int i = 0;
+        for (Object item : ad1) {
+            assertEquals((int) item, i);
+            i++;
+        }
+    }
+    @Test
+    public void equalsTest() {
+        ArrayDeque<Integer> ad1 = new ArrayDeque<>();
+        LinkedListDeque<Integer> lld1 = new LinkedListDeque<>();
+        ad1.addFirst(3);
+        ad1.addFirst(2);
+        ad1.addFirst(1);
+        ad1.addFirst(0);
+        lld1.addFirst(3);
+        lld1.addFirst(2);
+        lld1.addFirst(1);
+        lld1.addFirst(0);
+        assertTrue(ad1.equals(lld1));
+        assertTrue(lld1.equals(ad1));
     }
 }

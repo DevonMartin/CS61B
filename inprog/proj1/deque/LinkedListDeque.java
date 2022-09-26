@@ -1,6 +1,23 @@
 package deque;
 
-public class LinkedListDeque<T> {
+import java.util.ArrayDeque;
+import java.util.Iterator;
+
+public class LinkedListDeque<T> implements Deque<T>, Iterable {
+    private class LinkedListDequeIterator<T> implements Iterator<T> {
+        LinkedList cur = sentinel.next;
+        @Override
+        public boolean hasNext() {
+            return cur != sentinel;
+        }
+
+        @Override
+        public T next() {
+            T returnItem = (T) cur.t;
+            cur = cur.next;
+            return returnItem;
+        }
+    }
     /** Subclass utilized by LinkedListDeque
      *
      * @param <T> the item stored at the linked list/node.
@@ -21,6 +38,7 @@ public class LinkedListDeque<T> {
         sentinel.next = sentinel;
         sentinel.last = sentinel;
     }
+    @Override
     /** Add an item to the beginning of the deque. */
     public void addFirst(T t) {
         LinkedList tmp = new LinkedList(t);
@@ -30,6 +48,7 @@ public class LinkedListDeque<T> {
         sentinel.next = tmp;
         size++;
     }
+    @Override
     /** Remove the first item from the deque. */
     public T removeFirst() {
         if (size == 0) {
@@ -41,7 +60,8 @@ public class LinkedListDeque<T> {
         size--;
         return returnT;
     }
-    /** Add an item to the end of the deque. */
+    /** Add an item to the end of th
+     @Overridee deque. */
     public void addLast(T t) {
         LinkedList tmp = new LinkedList(t);
         tmp.last = sentinel.last;
@@ -50,6 +70,7 @@ public class LinkedListDeque<T> {
         sentinel.last = tmp;
         size++;
     }
+    @Override
     /** Remove the last item from the deque. */
     public T removeLast() {
         if (size == 0) {
@@ -61,14 +82,12 @@ public class LinkedListDeque<T> {
         size--;
         return returnT;
     }
-    /** Return true if the deque is empty, i.e. size == 0. */
-    public boolean isEmpty() {
-        return size == 0;
-    }
+    @Override
     /** Return the integer size of the deque. */
     public int size() {
         return size;
     }
+    @Override
     /** Get an item from a particular location in the deque using iteration. */
     public T get(int index) {
         if (index < size / 2) {
@@ -117,6 +136,7 @@ public class LinkedListDeque<T> {
         }
         return (T) getFromBackR(i+1, cur.last);
     }
+    @Override
     /** Print the deque in a human-readable format. */
     public void printDeque() {
         LinkedList cur;
@@ -125,18 +145,27 @@ public class LinkedListDeque<T> {
         }
         System.out.println(cur.t);
     }
-//    public Iterator<Item> iterator() {
-//
-//    }
-//    public boolean equals(Object o) {
-//        if (!(o instanceof LinkedListDeque)) {
-//            return false;
-//        }
-//    }
+    public Iterator<T> iterator() {
+        return new LinkedListDequeIterator<>();
+    }
+    public boolean equals(Object o) {
+        if (!(o instanceof Deque) || size != ((Deque<?>) o).size()) {
+            return false;
+        }
+        Iterator<T> i1 = iterator(), i2;
+        if (o instanceof deque.LinkedListDeque) {
+            i2 = ((deque.LinkedListDeque<T>) o).iterator();
+        } else {
+            i2 = ((deque.ArrayDeque<T>) o).iterator();
+        }
+        while (i1.hasNext()) {
+            if (i1.next() != i2.next()) {
+                return false;
+            }
+        }
+        return true;
+    }
 }
-
-//public Iterator<T> iterator(): The Deque objects we’ll make are iterable (i.e. Iterable<T>)
-//so we must provide this method to return an iterator.
 
 //public boolean equals(Object o): Returns whether the parameter o is equal to the Deque.
 //o is considered equal if it is a Deque and if it contains the same contents

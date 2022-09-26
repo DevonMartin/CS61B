@@ -175,4 +175,32 @@ public class LinkedListDequeTest {
             lld1.addLast(i+2);
         }
     }
+    @Test
+    public void iteratorTest() {
+        LinkedListDeque<Integer> lld1 = new LinkedListDeque<>();
+        lld1.addFirst(3);
+        lld1.addFirst(2);
+        lld1.addFirst(1);
+        lld1.addFirst(0);
+        int i = 0;
+        for (Object item : lld1) {
+            assertEquals((int) item, i);
+            i++;
+        }
+    }
+    @Test
+    public void equalsTest() {
+        LinkedListDeque<Integer> lld1 = new LinkedListDeque<>();
+        ArrayDeque<Integer> ad1 = new ArrayDeque<>();
+        lld1.addFirst(3);
+        lld1.addFirst(2);
+        lld1.addFirst(1);
+        lld1.addFirst(0);
+        ad1.addFirst(3);
+        ad1.addFirst(2);
+        ad1.addFirst(1);
+        ad1.addFirst(0);
+        assertTrue(lld1.equals(ad1));
+        assertTrue(ad1.equals(lld1));
+    }
 }

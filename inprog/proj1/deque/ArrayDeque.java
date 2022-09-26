@@ -2,11 +2,11 @@ package deque;
 
 import java.util.Iterator;
 /** A deque built on top of an array */
-public class ArrayDeque<T> implements Iterable {
+public class ArrayDeque<T> implements Deque<T>, Iterable {
     private class ArrayDequeIterator<T> implements Iterator<T> {
         int pos = startIndex;
         public boolean hasNext() {
-            return pos == endIndex;
+            return pos != endIndex;
         }
         public T next() {
             T returnItem = (T) items[pos];
@@ -41,6 +41,7 @@ public class ArrayDeque<T> implements Iterable {
         startIndex = 0;
         endIndex = 1;
     }
+    @Override
     /** Add an item to the beginning of the deque. */
     public void addFirst(T t) {
         if (size == items.length) {
@@ -57,6 +58,7 @@ public class ArrayDeque<T> implements Iterable {
         }
         size++;
     }
+    @Override
     /** Remove the first item from the deque. */
     public T removeFirst() {
         if (size == 0) {
@@ -77,6 +79,7 @@ public class ArrayDeque<T> implements Iterable {
         }
         return returnItem;
     }
+    @Override
     /** Add an item to the end of the deque. */
     public void addLast(T t) {
         if (size == items.length) {
@@ -93,6 +96,7 @@ public class ArrayDeque<T> implements Iterable {
         }
         size++;
     }
+    @Override
     /** Remove the last item from the deque. */
     public T removeLast() {
         if (size == 0) {
@@ -111,14 +115,12 @@ public class ArrayDeque<T> implements Iterable {
         endIndex--;
         return returnItem;
     }
-    /** Return true if the deque is empty. */
-    public boolean isEmpty() {
-        return size == 0;
-    }
+    @Override
     /** Return the integer size of the deque. */
     public int size() {
         return size;
     }
+    @Override
     /** Get an item from the deque at a particular index. */
     public T get(int index) {
         if (startIndex >= endIndex) {
@@ -129,6 +131,7 @@ public class ArrayDeque<T> implements Iterable {
         }
         return (T) items[index];
     }
+    @Override
     /** Print the deque in a human-readable format. */
     public void printDeque() {
         if (size == 0) {
@@ -153,17 +156,25 @@ public class ArrayDeque<T> implements Iterable {
     public Iterator<T> iterator() {
         return new ArrayDequeIterator<>();
     }
-//    public boolean equals(Object o) {
-//        if (!(o instanceof ArrayDeque)) {
-//            return false;
-//        }
-//    }
+    public boolean equals(Object o) {
+        if (!(o instanceof Deque) || size != ((Deque<?>) o).size()) {
+            return false;
+        }
+        Iterator<T> i1 = iterator(), i2;
+        if (o instanceof deque.ArrayDeque) {
+            i2 = ((deque.ArrayDeque<T>) o).iterator();
+        } else {
+            i2 = ((deque.LinkedListDeque<T>) o).iterator();
+        }
+        while (i1.hasNext()) {
+            if (i1.next() != i2.next()) {
+                return false;
+            }
+        }
+        return true;
+    }
 }
-
-//public Iterator<T> iterator(): The Deque objects we’ll make are iterable (i.e. Iterable<T>)
-//so we must provide this method to return an iterator.
 
 //public boolean equals(Object o): Returns whether the parameter o is equal to the Deque.
 //o is considered equal if it is a Deque and if it contains the same contents
 //(as governed by the generic T’s equals method) in the same order.
-//(ADDED 2/12: You’ll need to use the instance of keywords for this. Read here for more information)
