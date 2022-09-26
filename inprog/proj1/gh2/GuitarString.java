@@ -12,10 +12,11 @@ public class GuitarString {
 
     /* Buffer for storing sound data. */
      private Deque<Double> buffer;
+     int size;
 
     /* Create a guitar string of the given frequency.  */
     public GuitarString(double frequency) {
-        int size = (int) Math.round(SR / frequency);
+        size = (int) Math.round(SR / frequency);
         for (int i = 0; i < size; i++) {
             buffer.addFirst(0.0);
         }
@@ -32,6 +33,10 @@ public class GuitarString {
         //       other. This does not mean that you need to check that the numbers
         //       are different from each other. It means you should repeatedly call
         //       Math.random() - 0.5 to generate new random numbers for each array index.
+        while (buffer.removeFirst() != null);
+        for (int i = 0; i < size; i++) {
+            buffer.addFirst(Math.random() - 0.5);
+        }
     }
 
     /* Advance the simulation one time step by performing one iteration of
