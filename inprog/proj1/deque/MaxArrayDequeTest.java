@@ -2,6 +2,8 @@ package deque;
 
 import org.junit.Test;
 import static org.junit.Assert.*;
+
+import java.util.Comparator;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class MaxArrayDequeTest {
@@ -9,7 +11,7 @@ public class MaxArrayDequeTest {
     public void comparatorTest() {
         for (int i = 0; i < 500; i++) {
             int maxInt = ThreadLocalRandom.current().nextInt(2, 400000);
-            MaxIntUnder<Integer> c1 = new MaxIntUnder<>(maxInt);
+            Comparator<Integer> c1 = MaxArrayDeque.getMaxIntUnderComparator(maxInt);
             MaxArrayDeque mad1 = new MaxArrayDeque(c1);
             int k = ThreadLocalRandom.current().nextInt(2, 400000);
             for (int j = 0; j <= k; j++) {

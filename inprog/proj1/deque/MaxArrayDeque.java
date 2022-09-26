@@ -9,11 +9,31 @@ import java.util.Comparator;
  * @param <T> is the type of data this deque works with.
  */
 class MaxArrayDeque<T> extends ArrayDeque {
+    private static class MaxIntUnderComparator implements Comparator<Integer> {
+        int maxInt;
+        MaxIntUnderComparator(int x) {
+            maxInt = x;
+        }
+        @Override
+        public int compare(Integer a, Integer b) {
+            int returnValue = Integer.compare(a, b);
+            if (a > maxInt || b > maxInt) {
+                return -returnValue;
+            }
+            return returnValue;
+        }
+    }
+    static Comparator<Integer> getMaxIntUnderComparator(int x) {
+        return new MaxIntUnderComparator(x);
+    }
 
     private Comparator c;
 
-    public MaxArrayDeque(Comparator<T> c) {
-        super();
+    /**
+     * Instantiates the deque with ArrayDeque constructor
+     * plus the Comparator parameter.
+     */
+    MaxArrayDeque(Comparator<T> c) {
         this.c = c;
     }
 
@@ -21,7 +41,7 @@ class MaxArrayDeque<T> extends ArrayDeque {
      * Use the class's comparator to calculate a max value.
      * @return the max value.
      */
-    public T max() {
+    T max() {
         return (T) max(c);
     }
 
@@ -30,16 +50,15 @@ class MaxArrayDeque<T> extends ArrayDeque {
      * @param c the provided comparator.
      * @return  the max value.
      */
-    public T max(Comparator<T> c) {
+    T max(Comparator<T> c) {
         int size = size();
         if (size == 0) {
             return null;
         }
         T maxElement = (T) get(0);
-        for (int i = 1; i < size; i++) {
-            T item = (T) get(i);
-            if (c.compare(maxElement, item) < 0) {
-                maxElement = item;
+        for (Object item: items) {
+            if (!(item == null) && c.compare(maxElement, (T) item) < 0) {
+                maxElement = (T) item;
             }
         }
         return maxElement;

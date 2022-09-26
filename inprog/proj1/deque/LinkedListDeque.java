@@ -3,7 +3,7 @@ package deque;
 public class LinkedListDeque<T> {
     /** Subclass utilized by LinkedListDeque
      *
-     * @param <T> the item stored at the node.
+     * @param <T> the item stored at the linked list/node.
      */
     private class LinkedList<T> {
         T t;
@@ -13,15 +13,15 @@ public class LinkedListDeque<T> {
             this.t = t;
         }
     }
-    private int size;
-    private LinkedList sentinel;
+    private int size = 0;
+    private LinkedList sentinel = new LinkedList(0);
 
+    /** Instantiate a deque with a sentinel node that points at itself. */
     public LinkedListDeque() {
-        sentinel = new LinkedList(0);
         sentinel.next = sentinel;
         sentinel.last = sentinel;
-        size = 0;
     }
+    /** Add an item to the beginning of the deque. */
     public void addFirst(T t) {
         LinkedList tmp = new LinkedList(t);
         tmp.next = sentinel.next;
@@ -30,6 +30,7 @@ public class LinkedListDeque<T> {
         sentinel.next = tmp;
         size++;
     }
+    /** Remove the first item from the deque. */
     public T removeFirst() {
         if (size == 0) {
             return null;
@@ -40,6 +41,7 @@ public class LinkedListDeque<T> {
         size--;
         return returnT;
     }
+    /** Add an item to the end of the deque. */
     public void addLast(T t) {
         LinkedList tmp = new LinkedList(t);
         tmp.last = sentinel.last;
@@ -48,6 +50,7 @@ public class LinkedListDeque<T> {
         sentinel.last = tmp;
         size++;
     }
+    /** Remove the last item from the deque. */
     public T removeLast() {
         if (size == 0) {
             return null;
@@ -58,18 +61,23 @@ public class LinkedListDeque<T> {
         size--;
         return returnT;
     }
+    /** Return true if the deque is empty, i.e. size == 0. */
     public boolean isEmpty() {
         return size == 0;
     }
+    /** Return the integer size of the deque. */
     public int size() {
         return size;
     }
+    /** Get an item from a particular location in the deque using iteration. */
     public T get(int index) {
         if (index < size / 2) {
             return getFromFront(index);
         }
         return getFromBack(index);
     }
+    /** Helper function for get that is used when the index of the item requested
+     *  is closest to the front of the deque. */
     private T getFromFront(int i) {
         LinkedList cur = sentinel.next;
         for (int j = 0; j < i; j++) {
@@ -77,6 +85,8 @@ public class LinkedListDeque<T> {
         }
         return (T) cur.t;
     }
+    /** Helper function for get that is used when the index of the item requested
+     *  is closest to the back of the deque. */
     private T getFromBack(int i) {
         LinkedList cur = sentinel.last;
         for (int j = size-1; j > i; j--) {
@@ -84,24 +94,30 @@ public class LinkedListDeque<T> {
         }
         return (T) cur.t;
     }
+    /** Get an item from a particular location in the deque using iteration. */
     public T getRecursive(int index) {
         if (index < size / 2) {
             return (T) getFromFrontR(index, sentinel.next);
         }
         return (T) getFromBackR(index, sentinel.last);
     }
+    /** Helper function for getRecursive that is used when the index of the item
+     * requested is closest to the front of the deque. */
     private T getFromFrontR(int i, LinkedList cur) {
         if (i == 0) {
             return (T) cur.t;
         }
         return (T) getFromFrontR(i-1, cur.next);
     }
+    /** Helper function for getRecursive that is used when the index of the item
+     * requested is closest to the back of the deque. */
     private T getFromBackR(int i, LinkedList cur) {
         if (i == size-1) {
             return (T) cur.t;
         }
         return (T) getFromBackR(i+1, cur.last);
     }
+    /** Print the deque in a human-readable format. */
     public void printDeque() {
         LinkedList cur;
         for (cur = sentinel.next; cur.next != sentinel; cur = cur.next) {
@@ -113,7 +129,9 @@ public class LinkedListDeque<T> {
 //
 //    }
 //    public boolean equals(Object o) {
-//
+//        if (!(o instanceof LinkedListDeque)) {
+//            return false;
+//        }
 //    }
 }
 

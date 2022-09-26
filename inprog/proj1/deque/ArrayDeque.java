@@ -1,19 +1,29 @@
 package deque;
 
 import java.util.Iterator;
-
-public class ArrayDeque<T> {
-    private int startIndex;
-    private int endIndex;
-    private int size;
-    private T[] items;
-
-    public ArrayDeque() {
-        startIndex = 0;
-        endIndex = 0;
-        size = 0;
-        items = (T[]) new Object[8];
+/** A deque built on top of an array */
+public class ArrayDeque<T> implements Iterable {
+    private class ArrayDequeIterator<T> implements Iterator<T> {
+        int pos = startIndex;
+        public boolean hasNext() {
+            return pos == endIndex;
+        }
+        public T next() {
+            T returnItem = (T) items[pos];
+            if (pos == items.length - 1) {
+                pos = -1;
+            }
+            pos++;
+            return returnItem;
+        }
     }
+    private int startIndex = 0, endIndex = 0, size = 0;
+    public T[] items = (T[]) new Object[8];
+
+    /** Create an empty deque. */
+    public ArrayDeque() {
+    }
+    /** Move the current items array to a bigger or smaller array as needed. */
     private void changeArraySize(T[] tmp) {
         if (endIndex > startIndex) {
             System.arraycopy(items, startIndex, tmp, 0, size);
@@ -25,11 +35,13 @@ public class ArrayDeque<T> {
         endIndex = size;
         items = tmp;
     }
+    /** Add an item to the deque when it is empty, i.e. size == 0. */
     private void addFirstItem(T t) {
         items[0] = t;
         startIndex = 0;
         endIndex = 1;
     }
+    /** Add an item to the beginning of the deque. */
     public void addFirst(T t) {
         if (size == items.length) {
             changeArraySize((T[]) new Object[size*2]);
@@ -45,6 +57,7 @@ public class ArrayDeque<T> {
         }
         size++;
     }
+    /** Remove the first item from the deque. */
     public T removeFirst() {
         if (size == 0) {
             return null;
@@ -64,6 +77,7 @@ public class ArrayDeque<T> {
         }
         return returnItem;
     }
+    /** Add an item to the end of the deque. */
     public void addLast(T t) {
         if (size == items.length) {
             changeArraySize((T[]) new Object[size*2]);
@@ -79,6 +93,7 @@ public class ArrayDeque<T> {
         }
         size++;
     }
+    /** Remove the last item from the deque. */
     public T removeLast() {
         if (size == 0) {
             return null;
@@ -96,12 +111,15 @@ public class ArrayDeque<T> {
         endIndex--;
         return returnItem;
     }
+    /** Return true if the deque is empty. */
     public boolean isEmpty() {
         return size == 0;
     }
+    /** Return the integer size of the deque. */
     public int size() {
         return size;
     }
+    /** Get an item from the deque at a particular index. */
     public T get(int index) {
         if (startIndex >= endIndex) {
             index += startIndex;
@@ -111,6 +129,7 @@ public class ArrayDeque<T> {
         }
         return (T) items[index];
     }
+    /** Print the deque in a human-readable format. */
     public void printDeque() {
         if (size == 0) {
             return;
@@ -131,11 +150,13 @@ public class ArrayDeque<T> {
             }
         }
     }
-//    public Iterator<T> iterator() {
-//
-//    }
+    public Iterator<T> iterator() {
+        return new ArrayDequeIterator<>();
+    }
 //    public boolean equals(Object o) {
-//
+//        if (!(o instanceof ArrayDeque)) {
+//            return false;
+//        }
 //    }
 }
 
