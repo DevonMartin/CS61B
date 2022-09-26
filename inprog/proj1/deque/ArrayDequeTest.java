@@ -126,6 +126,13 @@ public class ArrayDequeTest {
             actual = ad1.get(i);
             assertEquals("Should have the same value", 5000-i, actual);
         }
+
+        ArrayDeque<Integer> ad2 = new ArrayDeque<>();
+
+        ad2.addLast(0);
+        ad2.addLast(1);
+        assertEquals((int) ad2.removeFirst(), 0);
+        assertEquals((int) ad2.get(0), 1);
     }
     @Test
     /** Ensure list grows and shrinks when appropriate. */

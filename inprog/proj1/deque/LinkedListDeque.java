@@ -3,7 +3,7 @@ package deque;
 import java.util.ArrayDeque;
 import java.util.Iterator;
 
-public class LinkedListDeque<T> implements Deque<T>, Iterable {
+public class LinkedListDeque<T> implements Deque<T>, Iterable<T> {
     private class LinkedListDequeIterator<T> implements Iterator<T> {
         LinkedList cur = sentinel.next;
         @Override
@@ -108,7 +108,7 @@ public class LinkedListDeque<T> implements Deque<T>, Iterable {
      *  is closest to the back of the deque. */
     private T getFromBack(int i) {
         LinkedList cur = sentinel.last;
-        for (int j = size-1; j > i; j--) {
+        for (int j = size - 1; j > i; j--) {
             cur = cur.last;
         }
         return (T) cur.t;
@@ -126,15 +126,15 @@ public class LinkedListDeque<T> implements Deque<T>, Iterable {
         if (i == 0) {
             return (T) cur.t;
         }
-        return (T) getFromFrontR(i-1, cur.next);
+        return (T) getFromFrontR(i - 1, cur.next);
     }
     /** Helper function for getRecursive that is used when the index of the item
      * requested is closest to the back of the deque. */
     private T getFromBackR(int i, LinkedList cur) {
-        if (i == size-1) {
+        if (i == size - 1) {
             return (T) cur.t;
         }
-        return (T) getFromBackR(i+1, cur.last);
+        return (T) getFromBackR(i + 1, cur.last);
     }
     @Override
     /** Print the deque in a human-readable format. */
@@ -159,7 +159,7 @@ public class LinkedListDeque<T> implements Deque<T>, Iterable {
             i2 = ((deque.ArrayDeque<T>) o).iterator();
         }
         while (i1.hasNext()) {
-            if (i1.next() != i2.next()) {
+            if (!(i1.next().equals(i2.next()))) {
                 return false;
             }
         }

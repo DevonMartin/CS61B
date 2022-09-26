@@ -9,7 +9,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class MaxArrayDequeTest {
     @Test
     /* Tests using a comparator to use .max() */
-    void comparatorTest() {
+    public void comparatorTest() {
         for (int i = 0; i < 500; i++) {
             int maxInt = ThreadLocalRandom.current().nextInt(2, 400000);
             Comparator<Integer> c1 = MaxArrayDeque.getMaxIntUnderComparator(maxInt);
