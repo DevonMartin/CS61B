@@ -162,8 +162,3 @@ public class LinkedListDeque<T> implements Deque<T>, Iterable<T> {
         return true;
     }
 }
-
-//public boolean equals(Object o): Returns whether the parameter o is equal to the Deque.
-//o is considered equal if it is a Deque and if it contains the same contents
-//(as governed by the generic T’s equals method) in the same order.
-//(ADDED 2/12: You’ll need to use the instance of keywords for this. Read here for more information)

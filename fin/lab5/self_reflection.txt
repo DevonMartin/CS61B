@@ -8,7 +8,7 @@ A:
 
 Q: What's something you felt proud of in your code, if anything?
 
-A:
+A: Overall, my code was clean and easy to read. 
 
 Q: What's something that was particularly inelegant in your code, if anything?
 
@@ -24,7 +24,7 @@ A:
 
 Q: If you wrote ArrayDeque again, what would you do differently, if anything?
 
-A:
+A: I would pay more attention to generics and when to use them. They caused my code to be redundant in many places.
 
 -----
 
@@ -36,11 +36,11 @@ A:
 
 Q: What's something you felt proud of in your code, if anything?
 
-A:
+A: 
 
 Q: What's something that was particularly inelegant in your code, if anything?
 
-A:
+A: The addition and subtraction of nodes was inelegant and repetitive. 
 
 Q: What did you learn by talking to your partner about writing LinkedListDeque?
 
@@ -52,7 +52,7 @@ A:
 
 Q: If you wrote LinkedListDeque again, what would you do differently, if anything?
 
-A:
+A: I would pay more attention to generics and when to use them. They caused my code to be redundant in many places.
 
 -----
 
