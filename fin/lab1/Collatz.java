@@ -7,7 +7,11 @@ public class Collatz {
      * which finds the next number based on whether
      * the current number is even or odd.*/
     public static int nextNumber(int n) {
-        return (n % 2 == 0) ? n / 2 : 3 * n + 1;
+        if ((n & 2) == 0) {
+            return n / 2;
+        } else {
+            return 3 * n + 1;
+        }
     }
 
     public static void main(String[] args) {
