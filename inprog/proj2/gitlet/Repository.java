@@ -1,15 +1,17 @@
 package gitlet;
 
 import java.io.File;
-import static gitlet.Utils.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-// TODO: any imports you need here
+import static gitlet.Utils.*;
 
 /** Represents a gitlet repository.
  *  TODO: It's a good idea to give a description here of what else this Class
  *  does at a high level.
  *
- *  @author TODO
+ *  @author Devon Martin
  */
 public class Repository {
     /**
@@ -21,9 +23,16 @@ public class Repository {
      */
 
     /** The current working directory. */
-    public static final File CWD = new File(System.getProperty("user.dir"));
+    private static final File CWD = new File(System.getProperty("user.dir"));
     /** The .gitlet directory. */
-    public static final File GITLET_DIR = join(CWD, ".gitlet");
+    private static final File GITLET_DIR = join(CWD, ".gitlet");
+    /**  */
+    private Commit Head = Commit.firstCommit;
+
+    public static boolean inRepo() {
+        Path path = Paths.get(GITLET_DIR.toURI());
+        return Files.exists(path);
+    }
 
     /* TODO: fill in the rest of this class. */
 }
