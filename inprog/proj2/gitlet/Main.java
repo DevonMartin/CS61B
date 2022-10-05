@@ -9,6 +9,9 @@ public class Main {
      *  <COMMAND> <OPERAND1> <OPERAND2> ... 
      */
     public static void main(String[] args) {
+
+        Commit.firstCommit().time();
+
         if (args.length == 0) {
             System.out.println("Please enter a command.");
             System.exit(0);
@@ -16,7 +19,7 @@ public class Main {
         String firstArg = args[0];
         switch(firstArg) {
             case "init":
-                // TODO: handle the `init` command
+                Repository.initialize();
                 break;
             case "add":
                 // TODO: handle the `add [filename]` command
