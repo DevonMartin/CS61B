@@ -2,6 +2,8 @@ package gitlet;
 
 // TODO: any imports you need here
 
+import java.io.Serializable;
+import java.time.Instant;
 import java.util.Date; // TODO: You'll likely use this in this class
 
 /** Represents a gitlet commit object.
@@ -10,7 +12,7 @@ import java.util.Date; // TODO: You'll likely use this in this class
  *
  *  @author Devon Martin
  */
-public class Commit {
+public class Commit implements Serializable {
     /**
      * TODO: add instance variables here.
      *
@@ -21,12 +23,24 @@ public class Commit {
 
     /** The message of this Commit. */
     private String message;
+    /** The time the commit was made. */
+    Instant time;
 
     public Commit(String msg) {
-
+        this.message = msg;
+        long unixTime = Instant.now().getEpochSecond();
+        this.time = Instant.ofEpochSecond(unixTime);
     }
 
-    public static Commit firstCommit = new Commit("initial commit");
+    public static Commit firstCommit() {
+        Commit c = new Commit("initial commit");
+        c.time = Instant.ofEpochSecond(0);
+        return c;
+    }
 
     /* TODO: fill in the rest of this class. */
 }
+
+
+// long unixTime = Instant.now().getEpochSecond();
+// 1577094336
