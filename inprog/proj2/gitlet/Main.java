@@ -1,5 +1,7 @@
 package gitlet;
 
+import java.io.File;
+
 /** Driver class for Gitlet, a subset of the Git version-control system.
  *  @author Devon Martin
  */
@@ -10,8 +12,6 @@ public class Main {
      */
     public static void main(String[] args) {
 
-        Commit.firstCommit().time();
-
         if (args.length == 0) {
             System.out.println("Please enter a command.");
             System.exit(0);
@@ -19,7 +19,7 @@ public class Main {
         String firstArg = args[0];
         switch(firstArg) {
             case "init":
-                Repository.initialize();
+                new Repository();
                 break;
             case "add":
                 // TODO: handle the `add [filename]` command

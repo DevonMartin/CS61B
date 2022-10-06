@@ -2,6 +2,7 @@ package gitlet;
 
 // TODO: any imports you need here
 
+import java.io.File;
 import java.io.Serializable;
 import java.util.Date; // TODO: You'll likely use this in this class
 
@@ -24,16 +25,31 @@ public class Commit implements Serializable {
     private String message;
     /** The time the commit was made. */
     private Date time;
+    private String parent;
 
-    public Commit(String msg) {
+    public Commit(String msg, String parent) {
+        new Commit(msg, new Date(), parent);
+    }
+    private Commit(String msg, Date time, String parent) {
         this.message = msg;
-        this.time = new Date();
+        this.time = time;
+        this.parent = parent;
+    }
+    public static String firstCommit() {
+        Commit c = new Commit("initial commit", new Date(0), null);
+        return saveCommitment(c);
     }
 
-    public static Commit firstCommit() {
-        Commit c = new Commit("initial commit");
-        c.time = new Date(0);
-        return c;
+    public static String saveCommitment(Commit commit) {
+        File tmpFile = new File("tmp_commitment");
+        Utils.writeObject(tmpFile, commit);
+        byte[] b = Utils.readContents(tmpFile);
+        String sha = Utils.sha1(b);
+        String fileDirectory = Repository.OBJECTS_DIR + "/" + sha.substring(0, 2);
+        File permFile = new File(fileDirectory + "/" + sha.substring(2, Utils.UID_LENGTH));
+        Utils.writeObject(permFile, commit);
+        Utils.restrictedDelete(tmpFile);
+        return sha;
     }
 
     public void time() {
@@ -42,7 +58,3 @@ public class Commit implements Serializable {
 
     /* TODO: fill in the rest of this class. */
 }
-
-
-// long unixTime = Instant.now().getEpochSecond();
-// 1577094336
