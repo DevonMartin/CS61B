@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.*;
+import java.util.Iterator;
 import java.util.LinkedList;
 
 import static gitlet.Utils.*;
@@ -40,7 +41,7 @@ public class Repository implements Serializable {
     /** The linked list of commits, starting with the oldest. */
     private LinkedList<String> Commits = new LinkedList<>();
 
-    public Repository() throws IOException {
+    Repository() throws IOException {
         if (inRepo()) {
             System.out.println("A Gitlet version-control system already exists in the current directory.");
             return;
@@ -51,9 +52,13 @@ public class Repository implements Serializable {
         setHeadToThis();
     }
 
-    private static boolean inRepo() {
+    static boolean inRepo() {
         Path path = Paths.get(GITLET_DIR.toURI());
         return Files.exists(path);
+    }
+
+    static Repository loadRepo() {
+        return readObject(HEAD, Repository.class);
     }
 
     private static void createDirectories() {
@@ -78,6 +83,17 @@ public class Repository implements Serializable {
         Path thisBranch = Paths.get(join(REFS_DIR, branch).toURI());
         Path headFile = Paths.get(HEAD.toURI());
         Files.copy(thisBranch, headFile, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    public void log() {
+        Iterator<String> iterator = Commits.descendingIterator();
+        while (iterator.hasNext()) {
+            String sha = iterator.next();
+            String fileDirectory = Repository.OBJECTS_DIR + "/" + sha.substring(0, 2);
+            File file = new File(fileDirectory + "/" + sha.substring(2, UID_LENGTH));
+            Commit commit = readObject(file, Commit.class);
+            System.out.println(commit);
+        }
     }
 
     /* TODO: fill in the rest of this class. */
