@@ -5,6 +5,7 @@ package gitlet;
 import java.io.File;
 import java.io.Serializable;
 import java.util.Date; // TODO: You'll likely use this in this class
+import java.util.LinkedList;
 
 import static gitlet.Utils.*;
 
@@ -28,35 +29,45 @@ public class Commit implements Serializable {
     private String message;
     /** The time the commit was made. */
     private Date time;
-    private String parent;
+    private String parent1;
+    private String parent2;
+    private LinkedList<String> addedFiles = new LinkedList<>();
+    private String sha;
 
-    public Commit(String msg, String parent) {
-        new Commit(msg, new Date(), parent);
+    public Commit(String msg, String parent1, String parent2) {
+        new Commit(msg, new Date(), parent1, parent2);
     }
-    private Commit(String msg, Date time, String parent) {
+    private Commit(String msg, Date time, String parent1, String parent2) {
         this.message = msg;
         this.time = time;
-        this.parent = parent;
+        this.parent1 = parent1;
+        this.parent2 = parent2;
     }
     public static String firstCommit() {
-        Commit c = new Commit("initial commit", new Date(0), null);
-        return saveCommitment(c);
+        Commit c = new Commit("initial commit", new Date(0), null, null);
+        c.saveCommitment();
+        return c.sha;
     }
 
-    public static String saveCommitment(Commit commit) {
+    public void saveCommitment() {
         File tmpFile = new File("tmp_commitment");
-        writeObject(tmpFile, commit);
+        writeObject(tmpFile, this);
         byte[] b = Utils.readContents(tmpFile);
-        String sha = Utils.sha1(b);
+        restrictedDelete(tmpFile);
+        sha = Utils.sha1(b);
         String fileDirectory = Repository.OBJECTS_DIR + "/" + sha.substring(0, 2);
         File permFile = new File(fileDirectory + "/" + sha.substring(2, UID_LENGTH));
-        writeObject(permFile, commit);
-        restrictedDelete(tmpFile);
-        return sha;
+        writeObject(permFile, this);
     }
 
-    public void time() {
-        System.out.println(time);
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder("===\ncommit " + sha + "\n");
+        if (parent2 != null) {
+            str.append("Merge: " + parent1.substring(0, 7) + " " + parent2.substring(0, 7) + "\n");
+        }
+        str.append("Date: " + time + "\n" + message + "\n");
+        return str.toString();
     }
 
     /* TODO: fill in the rest of this class. */
