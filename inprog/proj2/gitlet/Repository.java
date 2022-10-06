@@ -71,7 +71,8 @@ public class Repository implements Serializable {
         Head = commit;
     }
     private void saveRepository() {
-
+        File head = join(GITLET_DIR, "HEAD");
+        writeObject(head, this);
     }
 
     /* TODO: fill in the rest of this class. */

@@ -6,6 +6,9 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.Date; // TODO: You'll likely use this in this class
 
+import static gitlet.Utils.*;
+
+
 /** Represents a gitlet commit object.
  *  TODO: It's a good idea to give a description here of what else this Class
  *  does at a high level.
@@ -42,13 +45,13 @@ public class Commit implements Serializable {
 
     public static String saveCommitment(Commit commit) {
         File tmpFile = new File("tmp_commitment");
-        Utils.writeObject(tmpFile, commit);
+        writeObject(tmpFile, commit);
         byte[] b = Utils.readContents(tmpFile);
         String sha = Utils.sha1(b);
         String fileDirectory = Repository.OBJECTS_DIR + "/" + sha.substring(0, 2);
-        File permFile = new File(fileDirectory + "/" + sha.substring(2, Utils.UID_LENGTH));
-        Utils.writeObject(permFile, commit);
-        Utils.restrictedDelete(tmpFile);
+        File permFile = new File(fileDirectory + "/" + sha.substring(2, UID_LENGTH));
+        writeObject(permFile, commit);
+        restrictedDelete(tmpFile);
         return sha;
     }
 

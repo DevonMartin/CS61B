@@ -19,12 +19,18 @@ public class Main {
         String firstArg = args[0];
         switch(firstArg) {
             case "init":
+                if (args.length != 1) {
+                    System.out.println("Incorrect operands.");
+                    break;
+                }
                 new Repository();
                 break;
             case "add":
                 // TODO: handle the `add [filename]` command
                 break;
             // TODO: FILL THE REST IN
+            default:
+                System.out.println("No command with that name exists.");
         }
     }
 }
