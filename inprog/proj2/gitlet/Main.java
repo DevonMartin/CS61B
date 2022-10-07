@@ -5,6 +5,20 @@ package gitlet;
  */
 public class Main {
 
+    /** Helper function to ensure that the number of arguments
+     *  is correct for each command.
+     * @param args The arguments array passed into main
+     * @param n    The number of required arguments
+     * @return     Whether the number of arguments is correct.
+     */
+    private static boolean paramLenIsCorrect(String[] args, int n) {
+        if (args.length != n) {
+            System.out.println("Incorrect operands.");
+            return false;
+        }
+        return true;
+    }
+
     /** Usage: java gitlet.Main ARGS, where ARGS contains
      *  <COMMAND> <OPERAND1> <OPERAND2> ... 
      */
@@ -12,16 +26,14 @@ public class Main {
 
         if (args.length == 0) {
             System.out.println("Please enter a command.");
-            System.exit(0);
+            return;
         }
         String firstArg = args[0];
         if (firstArg.equals("init")) {
-            if (args.length != 1) {
-                System.out.println("Incorrect operands.");
+            if (paramLenIsCorrect(args, 1 )) {
+                new Repository();
                 return;
             }
-            new Repository();
-            return;
         }
         if (!Repository.inRepo()) {
             System.out.println("Not in an initialized Gitlet directory.");
@@ -39,45 +51,37 @@ public class Main {
                 // TODO: handle the `rm [filename]` command
                 break;
             case "log":
-                if (args.length != 1) {
-                    System.out.println("Incorrect operands.");
-                    return;
+                if (paramLenIsCorrect(args, 1)) {
+                    Repository.repo.log();
                 }
-                Repository.repo.log();
                 break;
             case "global-log":
-                if (args.length != 1) {
-                    System.out.println("Incorrect operands.");
-                    return;
+                if (paramLenIsCorrect(args, 1)) {
+                    Repository.repo.globalLog();
                 }
-                // TODO: handle the `global-log [filename]` command
                 break;
             case "find":
-                // TODO: handle the `find [filename]` command
+                if (paramLenIsCorrect(args, 2)) {
+                    Repository.repo.find(args[1]);
+                }
                 break;
             case "status":
-                if (args.length != 1) {
-                    System.out.println("Incorrect operands.");
-                    return;
+                if (paramLenIsCorrect(args, 1)) {
+                    Repository.repo.status();
                 }
-                Repository.repo.status();
                 break;
             case "checkout":
                 // TODO: handle the `checkout [filename]` command
                 break;
             case "branch":
-                if (args.length != 2) {
-                    System.out.println("Incorrect operands.");
-                    return;
+                if (paramLenIsCorrect(args, 2)) {
+                    Repository.repo.branch(args[1]);
                 }
-                Repository.repo.branch(args[1]);
                 break;
             case "rm-branch":
-                if (args.length != 2) {
-                    System.out.println("Incorrect operands.");
-                    return;
+                if (paramLenIsCorrect(args, 2)) {
+                    Repository.repo.rmBranch(args[1]);
                 }
-                Repository.repo.rmBranch(args[1]);
                 break;
             case "reset":
                 // TODO: handle the `reset [filename]` command

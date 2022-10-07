@@ -20,13 +20,6 @@ import static gitlet.Utils.*;
  *  @author Devon Martin
  */
 public class Repository implements Serializable {
-    /**
-     * TODO: add instance variables here.
-     *
-     * List all instance variables of the Repository class here with a useful
-     * comment above them describing what that variable represents and how that
-     * variable is used. We've provided two examples for you.
-     */
 
     /** The current working directory. */
     private static final File CWD = new File(System.getProperty("user.dir"));
@@ -103,6 +96,22 @@ public class Repository implements Serializable {
             String sha = iterator.next();
             System.out.println(Commit.getCommitFromSha(sha));
         }
+    }
+    void globalLog() {
+        for (String c1 : HEXADECIMAL_CHARS) {
+            for (String c2 : HEXADECIMAL_CHARS) {
+                File dir = join(OBJECTS_DIR, c1 + c2);
+                List<String> branches = plainFilenamesIn(dir);
+                if (branches != null) {
+                    for (String branch : branches) {
+                        System.out.println(Commit.getCommitFromSha(c1 + c2 + branch));
+                    }
+                }
+            }
+        }
+    }
+    void find(String msg) {
+
     }
     void status() {
         System.out.println("=== Branches ===");
