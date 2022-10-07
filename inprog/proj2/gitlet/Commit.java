@@ -48,14 +48,11 @@ public class Commit implements Serializable {
     }
 
     public void saveCommitment() {
-        File tmpFile = new File("tmp_commitment");
-        writeObject(tmpFile, this);
-        byte[] b = Utils.readContents(tmpFile);
-        restrictedDelete(tmpFile);
-        sha = Utils.sha1(b);
+        byte[] b = serialize(this);
+        sha = sha1(b);
         String fileDirectory = Repository.OBJECTS_DIR + "/" + sha.substring(0, 2);
-        File permFile = new File(fileDirectory + "/" + sha.substring(2, UID_LENGTH));
-        writeObject(permFile, this);
+        File file = new File(fileDirectory + "/" + sha.substring(2, UID_LENGTH));
+        writeObject(file, this);
     }
 
     public static Commit getCommitFromSha(String sha) {

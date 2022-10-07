@@ -1,7 +1,5 @@
 package gitlet;
 
-import java.io.IOException;
-
 /** Driver class for Gitlet, a subset of the Git version-control system.
  *  @author Devon Martin
  */
@@ -72,10 +70,14 @@ public class Main {
                     System.out.println("Incorrect operands.");
                     return;
                 }
-                Repository.repo.createBranch(args[1]);
+                Repository.repo.branch(args[1]);
                 break;
             case "rm-branch":
-                // TODO: handle the `rm-branch [filename]` command
+                if (args.length != 2) {
+                    System.out.println("Incorrect operands.");
+                    return;
+                }
+                Repository.repo.rmBranch(args[1]);
                 break;
             case "reset":
                 // TODO: handle the `reset [filename]` command

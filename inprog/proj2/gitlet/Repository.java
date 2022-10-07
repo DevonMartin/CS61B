@@ -62,7 +62,7 @@ public class Repository implements Serializable {
         createDirectories();
         addCommit(Commit.firstCommit());
         this.branch = "master";
-        createBranch(this.branch);
+        branch(this.branch);
         setHeadToThis();
     }
 
@@ -87,10 +87,6 @@ public class Repository implements Serializable {
     }
     private void addCommit(String commit) {
         commits.add(commit);
-    }
-    void createBranch(String name) {
-        File branchFile = join(REFS_DIR, name);
-        writeObject(branchFile, this);
     }
     private void setHeadToThis() {
         Path thisBranch = Paths.get(join(REFS_DIR, this.branch).toURI());
@@ -127,6 +123,24 @@ public class Repository implements Serializable {
         System.out.println("\n=== Modifications Not Staged For Commit ===");
         System.out.println("\n=== Untracked Files ===");
         System.out.println();
+    }
+    void branch(String name) {
+        File branchFile = join(REFS_DIR, name);
+        writeObject(branchFile, this);
+    }
+    void rmBranch(String name) {
+        if (name.equals(this.branch)) {
+            System.out.println("Cannot remove the current branch.");
+            return;
+        }
+        List<String> branches = plainFilenamesIn(REFS_DIR);
+        for (String branch : branches) {
+            if (branch.equals(name)) {
+                join(REFS_DIR, branch).delete();
+                return;
+            }
+        }
+        System.out.println("A branch with that name does not exist.");
     }
 
     /* TODO: fill in the rest of this class. */
