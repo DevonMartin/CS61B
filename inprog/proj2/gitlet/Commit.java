@@ -1,10 +1,8 @@
 package gitlet;
 
-// TODO: any imports you need here
-
 import java.io.File;
 import java.io.Serializable;
-import java.util.Date; // TODO: You'll likely use this in this class
+import java.util.Date;
 import java.util.LinkedList;
 
 import static gitlet.Utils.*;
@@ -58,6 +56,12 @@ public class Commit implements Serializable {
         String fileDirectory = Repository.OBJECTS_DIR + "/" + sha.substring(0, 2);
         File permFile = new File(fileDirectory + "/" + sha.substring(2, UID_LENGTH));
         writeObject(permFile, this);
+    }
+
+    public static Commit getCommitFromSha(String sha) {
+        String fileDirectory = Repository.OBJECTS_DIR + "/" + sha.substring(0, 2);
+        File file = new File(fileDirectory + "/" + sha.substring(2, UID_LENGTH));
+        return readObject(file, Commit.class);
     }
 
     @Override

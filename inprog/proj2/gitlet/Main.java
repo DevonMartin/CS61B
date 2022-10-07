@@ -1,14 +1,11 @@
 package gitlet;
 
-import java.io.File;
 import java.io.IOException;
 
 /** Driver class for Gitlet, a subset of the Git version-control system.
  *  @author Devon Martin
  */
 public class Main {
-
-    static Repository repo;
 
     /** Usage: java gitlet.Main ARGS, where ARGS contains
      *  <COMMAND> <OPERAND1> <OPERAND2> ... 
@@ -32,15 +29,56 @@ public class Main {
             System.out.println("Not in an initialized Gitlet directory.");
             return;
         }
-        repo = Repository.loadRepo();
-        switch(firstArg) {
+        Repository.loadRepo();
+        switch (firstArg) {
             case "add":
                 // TODO: handle the `add [filename]` command
                 break;
-            case "log":
-                repo.log();
+            case "commit":
+                // TODO: handle the `commit [filename]` command
                 break;
-            // TODO: FILL THE REST IN
+            case "rm":
+                // TODO: handle the `rm [filename]` command
+                break;
+            case "log":
+                if (args.length != 1) {
+                    System.out.println("Incorrect operands.");
+                    return;
+                }
+                Repository.repo.log();
+                break;
+            case "global-log":
+                if (args.length != 1) {
+                    System.out.println("Incorrect operands.");
+                    return;
+                }
+                // TODO: handle the `global-log [filename]` command
+                break;
+            case "find":
+                // TODO: handle the `find [filename]` command
+                break;
+            case "status":
+                if (args.length != 1) {
+                    System.out.println("Incorrect operands.");
+                    return;
+                }
+                Repository.repo.status();
+                break;
+            case "checkout":
+                // TODO: handle the `checkout [filename]` command
+                break;
+            case "branch":
+                // TODO: handle the `branch [filename]` command
+                break;
+            case "rm-branch":
+                // TODO: handle the `rm-branch [filename]` command
+                break;
+            case "reset":
+                // TODO: handle the `reset [filename]` command
+                break;
+            case "merge":
+                // TODO: handle the `merge [filename]` command
+                break;
             default:
                 System.out.println("No command with that name exists.");
         }

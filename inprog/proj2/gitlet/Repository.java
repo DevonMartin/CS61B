@@ -3,9 +3,13 @@ package gitlet;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 
 import static gitlet.Utils.*;
 
@@ -34,16 +38,25 @@ public class Repository implements Serializable {
     public static final File REFS_DIR = join(GITLET_DIR, "refs");
     private static final File STAGING_DIR = join(GITLET_DIR, "staging");
     /** The possible characters in a hexadecimal string. */
-    private static String[] HEXADECIMAL_CHARS =
-            { "0", "1", "2", "3", "4", "5", "6", "7",
-                    "8", "9", "a", "b", "c", "d", "e", "f" };
+    private static String[] HEXADECIMAL_CHARS = { "0", "1", "2", "3", "4", "5", "6", "7",
+                                                  "8", "9", "a", "b", "c", "d", "e", "f" };
+    /** The currently loaded repo that you are in. */
+    static Repository repo;
+    /** The branch this repo belongs to. */
     private String branch;
     /** The linked list of commits, starting with the oldest. */
-    private LinkedList<String> Commits = new LinkedList<>();
+    private LinkedList<String> commits = new LinkedList<>();
 
+    /** Initializes a new repository and calls helper functions to:
+     *  -create .gitlet and related directories
+     *  -create and save an initial commit
+     *  -create an initial branch, saving this repo as "master"
+     *  -set the current HEAD to this repo
+     */
     Repository() throws IOException {
         if (inRepo()) {
-            System.out.println("A Gitlet version-control system already exists in the current directory.");
+            String s = "A Gitlet version-control system already exists in the current directory.";
+            System.out.println(s);
             return;
         }
         createDirectories();
@@ -57,8 +70,8 @@ public class Repository implements Serializable {
         return Files.exists(path);
     }
 
-    static Repository loadRepo() {
-        return readObject(HEAD, Repository.class);
+    static void loadRepo() {
+        repo = readObject(HEAD, Repository.class);
     }
 
     private static void createDirectories() {
@@ -72,7 +85,7 @@ public class Repository implements Serializable {
         STAGING_DIR.mkdir();
     }
     private void addCommit(String commit) {
-        Commits.add(commit);
+        commits.add(commit);
     }
     private void createBranch(String name) {
         this.branch = name;
@@ -84,16 +97,32 @@ public class Repository implements Serializable {
         Path headFile = Paths.get(HEAD.toURI());
         Files.copy(thisBranch, headFile, StandardCopyOption.REPLACE_EXISTING);
     }
-
     public void log() {
-        Iterator<String> iterator = Commits.descendingIterator();
+        Iterator<String> iterator = commits.descendingIterator();
         while (iterator.hasNext()) {
             String sha = iterator.next();
-            String fileDirectory = Repository.OBJECTS_DIR + "/" + sha.substring(0, 2);
-            File file = new File(fileDirectory + "/" + sha.substring(2, UID_LENGTH));
-            Commit commit = readObject(file, Commit.class);
-            System.out.println(commit);
+            System.out.println(Commit.getCommitFromSha(sha));
         }
+    }
+    public void status() {
+        System.out.println("=== Branches ===");
+        for (String branch : plainFilenamesIn(REFS_DIR)) {
+            if (branch.equals(this.branch)) {
+                System.out.print("*");
+                System.out.println(branch);
+            }
+        }
+        System.out.println("\n=== Staged Files ===");
+        List<String> stagedFiles = plainFilenamesIn(STAGING_DIR);
+        if (stagedFiles != null) {
+            for (String file : stagedFiles) {
+                System.out.println(file);
+            }
+        }
+        System.out.println("\n=== Removed Files ===");
+        System.out.println("\n=== Modifications Not Staged For Commit ===");
+        System.out.println("\n=== Untracked Files ===");
+        System.out.println();
     }
 
     /* TODO: fill in the rest of this class. */
