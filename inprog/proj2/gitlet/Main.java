@@ -68,7 +68,11 @@ public class Main {
                 // TODO: handle the `checkout [filename]` command
                 break;
             case "branch":
-                // TODO: handle the `branch [filename]` command
+                if (args.length != 2) {
+                    System.out.println("Incorrect operands.");
+                    return;
+                }
+                Repository.repo.createBranch(args[1]);
                 break;
             case "rm-branch":
                 // TODO: handle the `rm-branch [filename]` command

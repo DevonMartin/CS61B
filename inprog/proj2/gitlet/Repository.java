@@ -61,7 +61,8 @@ public class Repository implements Serializable {
         }
         createDirectories();
         addCommit(Commit.firstCommit());
-        createBranch("master");
+        this.branch = "master";
+        createBranch(this.branch);
         setHeadToThis();
     }
 
@@ -87,13 +88,12 @@ public class Repository implements Serializable {
     private void addCommit(String commit) {
         commits.add(commit);
     }
-    private void createBranch(String name) {
-        this.branch = name;
-        File branchFile = join(REFS_DIR, this.branch);
+    void createBranch(String name) {
+        File branchFile = join(REFS_DIR, name);
         writeObject(branchFile, this);
     }
     private void setHeadToThis() {
-        Path thisBranch = Paths.get(join(REFS_DIR, branch).toURI());
+        Path thisBranch = Paths.get(join(REFS_DIR, this.branch).toURI());
         Path headFile = Paths.get(HEAD.toURI());
         try {
             Files.copy(thisBranch, headFile, StandardCopyOption.REPLACE_EXISTING);
@@ -101,20 +101,20 @@ public class Repository implements Serializable {
             throw new RuntimeException(e);
         }
     }
-    public void log() {
+    void log() {
         Iterator<String> iterator = commits.descendingIterator();
         while (iterator.hasNext()) {
             String sha = iterator.next();
             System.out.println(Commit.getCommitFromSha(sha));
         }
     }
-    public void status() {
+    void status() {
         System.out.println("=== Branches ===");
         for (String branch : plainFilenamesIn(REFS_DIR)) {
             if (branch.equals(this.branch)) {
                 System.out.print("*");
-                System.out.println(branch);
             }
+            System.out.println(branch);
         }
         System.out.println("\n=== Staged Files ===");
         List<String> stagedFiles = plainFilenamesIn(STAGING_DIR);
