@@ -53,7 +53,7 @@ public class Repository implements Serializable {
      *  -create an initial branch, saving this repo as "master"
      *  -set the current HEAD to this repo
      */
-    Repository() throws IOException {
+    Repository() {
         if (inRepo()) {
             String s = "A Gitlet version-control system already exists in the current directory.";
             System.out.println(s);
@@ -92,10 +92,14 @@ public class Repository implements Serializable {
         File branchFile = join(REFS_DIR, this.branch);
         writeObject(branchFile, this);
     }
-    private void setHeadToThis() throws IOException {
+    private void setHeadToThis() {
         Path thisBranch = Paths.get(join(REFS_DIR, branch).toURI());
         Path headFile = Paths.get(HEAD.toURI());
-        Files.copy(thisBranch, headFile, StandardCopyOption.REPLACE_EXISTING);
+        try {
+            Files.copy(thisBranch, headFile, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
     public void log() {
         Iterator<String> iterator = commits.descendingIterator();
