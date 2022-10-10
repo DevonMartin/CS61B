@@ -25,7 +25,7 @@ class Commit implements Serializable {
     private String parent2;
     private ArrayList<String> files = new ArrayList<>();
     private String sha;
-    private static String blobStr = "x";
+    private final static String blobStr = "x";
 
     Commit(String msg, String parent1, String parent2) {
         new Commit(msg, new Date(), parent1, parent2);
@@ -74,9 +74,17 @@ class Commit implements Serializable {
     public String toString() {
         StringBuilder str = new StringBuilder("===\ncommit " + sha + "\n");
         if (parent2 != null) {
-            str.append("Merge: " + parent1.substring(0, 7) + " " + parent2.substring(0, 7) + "\n");
+            str.append("Merge: ");
+            str.append(parent1, 0, 7);
+            str.append(" ");
+            str.append(parent2, 0, 7);
+            str.append("\n");
         }
-        str.append("Date: " + time + "\n" + message + "\n");
+        str.append("Date: ");
+        str.append(time);
+        str.append("\n");
+        str.append(message);
+        str.append("\n");
         return str.toString();
     }
 
