@@ -15,7 +15,7 @@ import static gitlet.Utils.*;
  *
  *  @author Devon Martin
  */
-public class Commit implements Serializable {
+class Commit implements Serializable {
 
     /** The message of this Commit. */
     private String message;
@@ -25,9 +25,9 @@ public class Commit implements Serializable {
     private String parent2;
     private ArrayList<String> files = new ArrayList<>();
     private String sha;
-    private String blobStr = "x";
+    private static String blobStr = "x";
 
-    public Commit(String msg, String parent1, String parent2) {
+    Commit(String msg, String parent1, String parent2) {
         new Commit(msg, new Date(), parent1, parent2);
     }
     private Commit(String msg, Date date, String parent1, String parent2) {
@@ -38,34 +38,34 @@ public class Commit implements Serializable {
         this.parent1 = parent1;
         this.parent2 = parent2;
     }
-    public static Boolean isCommit(String file) {
+    static Boolean isCommit(String file) {
         return file.length() == UID_LENGTH;
     }
-    public Boolean containsFile(String file) {
+    static Boolean containsFile(Commit commit, String file) {
         byte[] b = serialize(new File(file));
         String sha = sha1(b) + blobStr;
-        return files.contains(sha);
+        return commit.files.contains(sha);
     }
-    public static String firstCommit() {
+    static String firstCommit() {
         Commit c = new Commit("initial commit", new Date(0), null, null);
         c.saveCommitment();
         return c.sha;
     }
 
-//    public String makeCommitment() {
+//    static String makeCommitment() {
 //
 //    }
 
     public void saveCommitment() {
         byte[] b = serialize(this);
         sha = sha1(b);
-        String fileDirectory = RepoUtil.OBJECTS_DIR + "/" + sha.substring(0, 2);
+        String fileDirectory = Repository.OBJECTS_DIR + "/" + sha.substring(0, 2);
         File file = new File(fileDirectory + "/" + sha.substring(2, UID_LENGTH));
         writeObject(file, this);
     }
 
-    public static Commit getCommitFromSha(String sha) {
-        String fileDirectory = RepoUtil.OBJECTS_DIR + "/" + sha.substring(0, 2);
+    static Commit getCommitFromSha(String sha) {
+        String fileDirectory = Repository.OBJECTS_DIR + "/" + sha.substring(0, 2);
         File file = new File(fileDirectory + "/" + sha.substring(2, UID_LENGTH));
         return readObject(file, Commit.class);
     }
@@ -80,10 +80,11 @@ public class Commit implements Serializable {
         return str.toString();
     }
 
-    public void log() {
-        System.out.println(this);
-        if (parent1 != null) {
-            getCommitFromSha(parent1).log();
+    static void log(Commit commit) {
+        System.out.println(commit);
+        String p1 = commit.parent1;
+        if (p1 != null) {
+            Commit.log(getCommitFromSha(p1));
         }
     }
 

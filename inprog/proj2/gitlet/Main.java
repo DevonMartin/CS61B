@@ -35,15 +35,15 @@ public class Main {
                 return;
             }
         }
-        if (!RepoUtil.inRepo()) {
+        if (!Repository.inRepo()) {
             System.out.println("Not in an initialized Gitlet directory.");
             return;
         }
-        Repository repo = RepoUtil.loadRepo();
+        Repository repo = Repository.loadRepo();
         switch (firstArg) {
             case "add":
                 if (paramLenIsCorrect(args, 2)) {
-                    repo.add(args[1]);
+                    Repository.add(repo, args[1]);
                 }
                 break;
             case "commit":
@@ -60,22 +60,22 @@ public class Main {
                 break;
             case "log":
                 if (paramLenIsCorrect(args, 1)) {
-                    repo.log();
+                    Repository.log(repo);
                 }
                 break;
             case "global-log":
                 if (paramLenIsCorrect(args, 1)) {
-                    repo.globalLog();
+                    Repository.globalLog();
                 }
                 break;
             case "find":
                 if (paramLenIsCorrect(args, 2)) {
-                    repo.find(args[1]);
+                    Repository.find(args[1]);
                 }
                 break;
             case "status":
                 if (paramLenIsCorrect(args, 1)) {
-                    repo.status();
+                    Repository.status(repo);
                 }
                 break;
             case "checkout":
@@ -83,12 +83,12 @@ public class Main {
                 break;
             case "branch":
                 if (paramLenIsCorrect(args, 2)) {
-                    repo.branch(args[1]);
+                    Repository.branch(repo, args[1]);
                 }
                 break;
             case "rm-branch":
                 if (paramLenIsCorrect(args, 2)) {
-                    repo.rmBranch(args[1]);
+                    Repository.rmBranch(repo, args[1]);
                 }
                 break;
             case "reset":

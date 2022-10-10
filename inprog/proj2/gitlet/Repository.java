@@ -17,7 +17,7 @@ import static gitlet.Utils.*;
  *
  *  @author Devon Martin
  */
-public class Repository implements Serializable {
+class Repository implements Serializable {
 
     /** The current working directory. */
     private static final File CWD = new File(System.getProperty("user.dir"));
@@ -29,7 +29,7 @@ public class Repository implements Serializable {
     public static final File REFS_DIR = join(GITLET_DIR, "refs");
     private static final File STAGING_DIR = join(GITLET_DIR, "staging");
     /** The possible characters in a hexadecimal string. */
-    private static String[] HEXADECIMAL_CHARS = { "0", "1", "2", "3", "4", "5", "6", "7",
+    private static final String[] HEXADECIMAL_CHARS = { "0", "1", "2", "3", "4", "5", "6", "7",
                                                   "8", "9", "a", "b", "c", "d", "e", "f" };
     /** The branch this repo belongs to. */
     private String branch;
@@ -51,8 +51,8 @@ public class Repository implements Serializable {
         createDirectories();
         latestCommit = Commit.firstCommit();
         this.branch = "master";
-        branch(this.branch);
-        setHeadToThis();
+        branch(this, this.branch);
+        setHeadToThis(this.branch);
     }
 
     static boolean inRepo() {
@@ -74,8 +74,8 @@ public class Repository implements Serializable {
         REFS_DIR.mkdir();
         STAGING_DIR.mkdir();
     }
-    private void setHeadToThis() {
-        Path thisBranch = join(REFS_DIR, this.branch).toPath();
+    private static void setHeadToThis(String branch) {
+        Path thisBranch = join(REFS_DIR, branch).toPath();
         Path headFile = HEAD.toPath();
         try {
             Files.copy(thisBranch, headFile, StandardCopyOption.REPLACE_EXISTING);
@@ -83,10 +83,10 @@ public class Repository implements Serializable {
             e.printStackTrace();
         }
     }
-    void add(String file) {
+    static void add(Repository repo, String file) {
         if (plainFilenamesIn(CWD).contains(file)) {
-            Commit c = Commit.getCommitFromSha(latestCommit);
-            if (plainFilenamesIn(STAGING_DIR).contains(file) && c.containsFile(file)) {
+            Commit c = Commit.getCommitFromSha(repo.latestCommit);
+            if (plainFilenamesIn(STAGING_DIR).contains(file) && Commit.containsFile(c, file)) {
                 join(STAGING_DIR, file).delete();
                 return;
             }
@@ -100,10 +100,11 @@ public class Repository implements Serializable {
         }
         System.out.println("File does not exist.");
     }
-    void log() {
-        Commit.getCommitFromSha(latestCommit).log();
+    static void log(Repository repo) {
+        Commit commit = Commit.getCommitFromSha(repo.latestCommit);
+        Commit.log(commit);
     }
-    void globalLog() {
+    static void globalLog() {
         for (String c1 : HEXADECIMAL_CHARS) {
             for (String c2 : HEXADECIMAL_CHARS) {
                 File dir = join(OBJECTS_DIR, c1 + c2);
@@ -119,27 +120,27 @@ public class Repository implements Serializable {
             }
         }
     }
-    void find(String msg) {
+    static void find(String msg) {
 
     }
-    void status() {
-        statusBranches();
+    static void status(Repository repo) {
+        statusBranches(repo.branch);
         statusStagedFiles();
         statusRemovedFiles();
         statusNotStaged();
-        statusUntracked();
+        statusUntracked(repo.latestCommit);
         System.out.println();
     }
-    private void statusBranches() {
+    private static void statusBranches(String branch) {
         System.out.println("=== Branches ===");
         for (String b : plainFilenamesIn(REFS_DIR)) {
-            if (b.equals(this.branch)) {
+            if (b.equals(branch)) {
                 System.out.print("*");
             }
             System.out.println(b);
         }
     }
-    private void statusStagedFiles() {
+    private static void statusStagedFiles() {
         System.out.println("\n=== Staged Files ===");
         List<String> stagedFiles = plainFilenamesIn(STAGING_DIR);
         if (stagedFiles != null) {
@@ -148,22 +149,22 @@ public class Repository implements Serializable {
             }
         }
     }
-    private void statusRemovedFiles() {
+    private static void statusRemovedFiles() {
         System.out.println("\n=== Removed Files ===");
     }
-    private void statusNotStaged() {
+    private static void statusNotStaged() {
         System.out.println("\n=== Modifications Not Staged For Commit ===");
     }
-    private void statusUntracked() {
+    private static void statusUntracked(String latestCommit) {
         System.out.println("\n=== Untracked Files ===");
         Commit c = Commit.getCommitFromSha(latestCommit);
         for (String file : plainFilenamesIn(CWD)) {
-            if (!c.containsFile(file) && !plainFilenamesIn(STAGING_DIR).contains(file)) {
+            if (!Commit.containsFile(c, file) && !plainFilenamesIn(STAGING_DIR).contains(file)) {
                 System.out.println(file);
             }
         }
     }
-    void branch(String name) {
+    static void branch(Repository repo, String name) {
         for (String file : plainFilenamesIn(REFS_DIR)) {
             if (file.equals(name)) {
                 System.out.println("A branch with that name already exists.");
@@ -171,10 +172,10 @@ public class Repository implements Serializable {
             }
         }
         File branchFile = join(REFS_DIR, name);
-        writeObject(branchFile, this);
+        writeObject(branchFile, repo);
     }
-    void rmBranch(String name) {
-        if (name.equals(this.branch)) {
+    static void rmBranch(Repository repo, String name) {
+        if (name.equals(repo.branch)) {
             System.out.println("Cannot remove the current branch.");
             return;
         }
