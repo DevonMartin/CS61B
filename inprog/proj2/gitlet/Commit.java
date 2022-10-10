@@ -25,6 +25,7 @@ public class Commit implements Serializable {
     private String parent2;
     private ArrayList<String> files = new ArrayList<>();
     private String sha;
+    private String blobStr = "x";
 
     public Commit(String msg, String parent1, String parent2) {
         new Commit(msg, new Date(), parent1, parent2);
@@ -39,6 +40,11 @@ public class Commit implements Serializable {
     }
     public static Boolean isCommit(String file) {
         return file.length() == UID_LENGTH;
+    }
+    public Boolean containsFile(String file) {
+        byte[] b = serialize(new File(file));
+        String sha = sha1(b) + blobStr;
+        return files.contains(sha);
     }
     public static String firstCommit() {
         Commit c = new Commit("initial commit", new Date(0), null, null);

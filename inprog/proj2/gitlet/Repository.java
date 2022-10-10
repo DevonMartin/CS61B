@@ -108,6 +108,14 @@ public class Repository implements Serializable {
 
     }
     void status() {
+        statusBranches();
+        statusStagedFiles();
+        statusRemovedFiles();
+        statusNotStaged();
+        statusUntracked();
+        System.out.println();
+    }
+    private void statusBranches() {
         System.out.println("=== Branches ===");
         for (String b : plainFilenamesIn(REFS_DIR)) {
             if (b.equals(this.branch)) {
@@ -115,6 +123,8 @@ public class Repository implements Serializable {
             }
             System.out.println(b);
         }
+    }
+    private void statusStagedFiles() {
         System.out.println("\n=== Staged Files ===");
         List<String> stagedFiles = plainFilenamesIn(STAGING_DIR);
         if (stagedFiles != null) {
@@ -122,10 +132,21 @@ public class Repository implements Serializable {
                 System.out.println(file);
             }
         }
+    }
+    private void statusRemovedFiles() {
         System.out.println("\n=== Removed Files ===");
+    }
+    private void statusNotStaged() {
         System.out.println("\n=== Modifications Not Staged For Commit ===");
+    }
+    private void statusUntracked() {
         System.out.println("\n=== Untracked Files ===");
-        System.out.println();
+        Commit c = Commit.getCommitFromSha(latestCommit);
+        for (String file : plainFilenamesIn(CWD)) {
+            if (!c.containsFile(file)) {
+                System.out.println(file);
+            }
+        }
     }
     void branch(String name) {
         for (String file : plainFilenamesIn(REFS_DIR)) {

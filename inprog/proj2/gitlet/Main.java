@@ -4,7 +4,6 @@ package gitlet;
  *  @author Devon Martin
  */
 public class Main {
-
     /** Helper function to ensure that the number of arguments
      *  is correct for each command. Errors and exits program
      *  if not.
