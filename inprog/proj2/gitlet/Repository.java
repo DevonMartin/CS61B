@@ -7,8 +7,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 
 import static gitlet.Utils.*;
@@ -38,7 +36,7 @@ public class Repository implements Serializable {
     /** The branch this repo belongs to. */
     private String branch;
     /** The linked list of commits, starting with the oldest. */
-    private LinkedList<String> commits = new LinkedList<>();
+    private String latestCommit;
 
     /** Initializes a new repository and calls helper functions to:
      *  -create .gitlet and related directories
@@ -53,7 +51,7 @@ public class Repository implements Serializable {
             return;
         }
         createDirectories();
-        addCommit(Commit.firstCommit());
+        latestCommit = Commit.firstCommit();
         this.branch = "master";
         branch(this.branch);
         setHeadToThis();
@@ -78,33 +76,29 @@ public class Repository implements Serializable {
         REFS_DIR.mkdir();
         STAGING_DIR.mkdir();
     }
-    private void addCommit(String commit) {
-        commits.add(commit);
-    }
     private void setHeadToThis() {
         Path thisBranch = Paths.get(join(REFS_DIR, this.branch).toURI());
         Path headFile = Paths.get(HEAD.toURI());
         try {
             Files.copy(thisBranch, headFile, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
         }
     }
     void log() {
-        Iterator<String> iterator = commits.descendingIterator();
-        while (iterator.hasNext()) {
-            String sha = iterator.next();
-            System.out.println(Commit.getCommitFromSha(sha));
-        }
+        Commit.getCommitFromSha(latestCommit).log();
     }
     void globalLog() {
         for (String c1 : HEXADECIMAL_CHARS) {
             for (String c2 : HEXADECIMAL_CHARS) {
                 File dir = join(OBJECTS_DIR, c1 + c2);
-                List<String> branches = plainFilenamesIn(dir);
-                if (branches != null) {
-                    for (String branch : branches) {
-                        System.out.println(Commit.getCommitFromSha(c1 + c2 + branch));
+                List<String> files = plainFilenamesIn(dir);
+                if (files != null) {
+                    for (String file : files) {
+                        file = c1 + c2 + file;
+                        if (Commit.isCommit(file)) {
+                            System.out.println(Commit.getCommitFromSha(file));
+                        }
                     }
                 }
             }
@@ -115,11 +109,11 @@ public class Repository implements Serializable {
     }
     void status() {
         System.out.println("=== Branches ===");
-        for (String branch : plainFilenamesIn(REFS_DIR)) {
-            if (branch.equals(this.branch)) {
+        for (String b : plainFilenamesIn(REFS_DIR)) {
+            if (b.equals(this.branch)) {
                 System.out.print("*");
             }
-            System.out.println(branch);
+            System.out.println(b);
         }
         System.out.println("\n=== Staged Files ===");
         List<String> stagedFiles = plainFilenamesIn(STAGING_DIR);
@@ -134,6 +128,12 @@ public class Repository implements Serializable {
         System.out.println();
     }
     void branch(String name) {
+        for (String file : plainFilenamesIn(REFS_DIR)) {
+            if (file.equals(name)) {
+                System.out.println("A branch with that name already exists.");
+                return;
+            }
+        }
         File branchFile = join(REFS_DIR, name);
         writeObject(branchFile, this);
     }
@@ -143,9 +143,9 @@ public class Repository implements Serializable {
             return;
         }
         List<String> branches = plainFilenamesIn(REFS_DIR);
-        for (String branch : branches) {
-            if (branch.equals(name)) {
-                join(REFS_DIR, branch).delete();
+        for (String b : branches) {
+            if (b.equals(name)) {
+                join(REFS_DIR, b).delete();
                 return;
             }
         }

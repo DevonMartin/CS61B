@@ -6,7 +6,8 @@ package gitlet;
 public class Main {
 
     /** Helper function to ensure that the number of arguments
-     *  is correct for each command.
+     *  is correct for each command. Errors and exits program
+     *  if not.
      * @param args The arguments array passed into main
      * @param n    The number of required arguments
      * @return     Whether the number of arguments is correct.
@@ -30,7 +31,7 @@ public class Main {
         }
         String firstArg = args[0];
         if (firstArg.equals("init")) {
-            if (paramLenIsCorrect(args, 1 )) {
+            if (paramLenIsCorrect(args, 1)) {
                 new Repository();
                 return;
             }
@@ -42,12 +43,21 @@ public class Main {
         Repository.loadRepo();
         switch (firstArg) {
             case "add":
+                if (paramLenIsCorrect(args, 2)) {
+
+                }
                 // TODO: handle the `add [filename]` command
                 break;
             case "commit":
+                if (paramLenIsCorrect(args, 2)) {
+
+                }
                 // TODO: handle the `commit [filename]` command
                 break;
             case "rm":
+                if (paramLenIsCorrect(args, 2)) {
+
+                }
                 // TODO: handle the `rm [filename]` command
                 break;
             case "log":
@@ -84,6 +94,9 @@ public class Main {
                 }
                 break;
             case "reset":
+                if (paramLenIsCorrect(args, 2)) {
+
+                }
                 // TODO: handle the `reset [filename]` command
                 break;
             case "merge":
