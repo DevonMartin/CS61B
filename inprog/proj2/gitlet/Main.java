@@ -35,17 +35,16 @@ public class Main {
                 return;
             }
         }
-        if (!Repository.inRepo()) {
+        if (!RepoUtil.inRepo()) {
             System.out.println("Not in an initialized Gitlet directory.");
             return;
         }
-        Repository.loadRepo();
+        Repository repo = RepoUtil.loadRepo();
         switch (firstArg) {
             case "add":
                 if (paramLenIsCorrect(args, 2)) {
-
+                    repo.add(args[1]);
                 }
-                // TODO: handle the `add [filename]` command
                 break;
             case "commit":
                 if (paramLenIsCorrect(args, 2)) {
@@ -61,22 +60,22 @@ public class Main {
                 break;
             case "log":
                 if (paramLenIsCorrect(args, 1)) {
-                    Repository.repo.log();
+                    repo.log();
                 }
                 break;
             case "global-log":
                 if (paramLenIsCorrect(args, 1)) {
-                    Repository.repo.globalLog();
+                    repo.globalLog();
                 }
                 break;
             case "find":
                 if (paramLenIsCorrect(args, 2)) {
-                    Repository.repo.find(args[1]);
+                    repo.find(args[1]);
                 }
                 break;
             case "status":
                 if (paramLenIsCorrect(args, 1)) {
-                    Repository.repo.status();
+                    repo.status();
                 }
                 break;
             case "checkout":
@@ -84,12 +83,12 @@ public class Main {
                 break;
             case "branch":
                 if (paramLenIsCorrect(args, 2)) {
-                    Repository.repo.branch(args[1]);
+                    repo.branch(args[1]);
                 }
                 break;
             case "rm-branch":
                 if (paramLenIsCorrect(args, 2)) {
-                    Repository.repo.rmBranch(args[1]);
+                    repo.rmBranch(args[1]);
                 }
                 break;
             case "reset":

@@ -31,8 +31,6 @@ public class Repository implements Serializable {
     /** The possible characters in a hexadecimal string. */
     private static String[] HEXADECIMAL_CHARS = { "0", "1", "2", "3", "4", "5", "6", "7",
                                                   "8", "9", "a", "b", "c", "d", "e", "f" };
-    /** The currently loaded repo that you are in. */
-    static Repository repo;
     /** The branch this repo belongs to. */
     private String branch;
     /** The linked list of commits, starting with the oldest. */
@@ -62,8 +60,8 @@ public class Repository implements Serializable {
         return Files.exists(path);
     }
 
-    static void loadRepo() {
-        repo = readObject(HEAD, Repository.class);
+    static Repository loadRepo() {
+        return readObject(HEAD, Repository.class);
     }
 
     private static void createDirectories() {
@@ -77,13 +75,30 @@ public class Repository implements Serializable {
         STAGING_DIR.mkdir();
     }
     private void setHeadToThis() {
-        Path thisBranch = Paths.get(join(REFS_DIR, this.branch).toURI());
-        Path headFile = Paths.get(HEAD.toURI());
+        Path thisBranch = join(REFS_DIR, this.branch).toPath();
+        Path headFile = HEAD.toPath();
         try {
             Files.copy(thisBranch, headFile, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+    void add(String file) {
+        if (plainFilenamesIn(CWD).contains(file)) {
+            Commit c = Commit.getCommitFromSha(latestCommit);
+            if (plainFilenamesIn(STAGING_DIR).contains(file) && c.containsFile(file)) {
+                join(STAGING_DIR, file).delete();
+                return;
+            }
+            try {
+                Path from = join(CWD, file).toPath(), to = join(STAGING_DIR, file).toPath();
+                Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return;
+        }
+        System.out.println("File does not exist.");
     }
     void log() {
         Commit.getCommitFromSha(latestCommit).log();
@@ -143,7 +158,7 @@ public class Repository implements Serializable {
         System.out.println("\n=== Untracked Files ===");
         Commit c = Commit.getCommitFromSha(latestCommit);
         for (String file : plainFilenamesIn(CWD)) {
-            if (!c.containsFile(file)) {
+            if (!c.containsFile(file) && !plainFilenamesIn(STAGING_DIR).contains(file)) {
                 System.out.println(file);
             }
         }
@@ -172,6 +187,4 @@ public class Repository implements Serializable {
         }
         System.out.println("A branch with that name does not exist.");
     }
-
-    /* TODO: fill in the rest of this class. */
 }

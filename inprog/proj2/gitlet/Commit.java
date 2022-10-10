@@ -59,13 +59,13 @@ public class Commit implements Serializable {
     public void saveCommitment() {
         byte[] b = serialize(this);
         sha = sha1(b);
-        String fileDirectory = Repository.OBJECTS_DIR + "/" + sha.substring(0, 2);
+        String fileDirectory = RepoUtil.OBJECTS_DIR + "/" + sha.substring(0, 2);
         File file = new File(fileDirectory + "/" + sha.substring(2, UID_LENGTH));
         writeObject(file, this);
     }
 
     public static Commit getCommitFromSha(String sha) {
-        String fileDirectory = Repository.OBJECTS_DIR + "/" + sha.substring(0, 2);
+        String fileDirectory = RepoUtil.OBJECTS_DIR + "/" + sha.substring(0, 2);
         File file = new File(fileDirectory + "/" + sha.substring(2, UID_LENGTH));
         return readObject(file, Commit.class);
     }
