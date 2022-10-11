@@ -38,8 +38,8 @@ class Commit implements Serializable {
         this.parent1 = parent1;
         this.parent2 = parent2;
     }
-    static Boolean isCommit(String file) {
-        return file.length() == UID_LENGTH;
+    static Boolean isCommit(String fileName) {
+        return fileName.length() == UID_LENGTH - 2;
     }
     static Boolean containsFile(Commit commit, String file) {
         byte[] b = serialize(new File(file));
@@ -69,10 +69,16 @@ class Commit implements Serializable {
         File file = new File(fileDirectory + "/" + sha.substring(2, UID_LENGTH));
         return readObject(file, Commit.class);
     }
+    String sha() {
+        return sha;
+    }
+    String message() {
+        return message;
+    }
 
     @Override
     public String toString() {
-        StringBuilder str = new StringBuilder("===\ncommit " + sha + "\n");
+        StringBuilder str = new StringBuilder("===\ncommit " + sha() + "\n");
         if (parent2 != null) {
             str.append("Merge: ");
             str.append(parent1, 0, 7);
@@ -83,7 +89,7 @@ class Commit implements Serializable {
         str.append("Date: ");
         str.append(time);
         str.append("\n");
-        str.append(message);
+        str.append(message());
         str.append("\n");
         return str.toString();
     }

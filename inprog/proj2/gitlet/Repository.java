@@ -111,9 +111,8 @@ class Repository implements Serializable {
                 List<String> files = plainFilenamesIn(dir);
                 if (files != null) {
                     for (String file : files) {
-                        file = c1 + c2 + file;
                         if (Commit.isCommit(file)) {
-                            System.out.println(Commit.getCommitFromSha(file));
+                            System.out.println(Commit.getCommitFromSha(c1 + c2 + file));
                         }
                     }
                 }
@@ -121,7 +120,28 @@ class Repository implements Serializable {
         }
     }
     static void find(String msg) {
-
+        Boolean found = false;
+        for (String c1 : HEXADECIMAL_CHARS) {
+            for (String c2 : HEXADECIMAL_CHARS) {
+                File dir = join(OBJECTS_DIR, c1 + c2);
+                List<String> files = plainFilenamesIn(dir);
+                if (files != null) {
+                    for (String file : files) {
+                        if (Commit.isCommit(file)) {
+                            File f = join(dir, file);
+                            Commit c = readObject(f, Commit.class);
+                            if (c.message().equals(msg)) {
+                                System.out.println(c.sha());
+                                found = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (!found) {
+            System.out.println("Found no commit with that message.");
+        }
     }
     static void status(Repository repo) {
         statusBranches(repo.branch);
