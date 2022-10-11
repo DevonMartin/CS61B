@@ -54,7 +54,7 @@ public class Main {
                 break;
             case "rm":
                 if (paramLenIsCorrect(args, 2)) {
-
+                    Repository.rm(repo, args[1]);
                 }
                 // TODO: handle the `rm [filename]` command
                 break;

@@ -61,7 +61,7 @@ class Commit implements Serializable {
     }
     static Boolean containsFile(Commit commit, String file) {
         for (String trackedFile : commit.files) {
-            trackedFile = trackedFile.substring(COMMIT_NAME_LENGTH - 1);
+            trackedFile = trackedFile.substring(UID_LENGTH);
             if (trackedFile.equals(file)) {
                 return true;
             }
@@ -102,7 +102,7 @@ class Commit implements Serializable {
             addFileToCommit(file, child);
         }
         /* Remove files from commit that have been staged for removal. */
-        for (String file : repo.rmStaging) {
+        for (String file : repo.rmStage) {
             Commit.removeFileFromCommit(child, file);
         }
         child.saveCommitment();
@@ -129,7 +129,7 @@ class Commit implements Serializable {
     /* Remove a file from a commit if it exists, else return. */
     private static void removeFileFromCommit(Commit commit, String fileToRemove) {
         for (String file : commit.files) {
-            if (file.substring(COMMIT_NAME_LENGTH - 1).equals(fileToRemove)) {
+            if (file.substring(UID_LENGTH).equals(fileToRemove)) {
                 commit.files.remove(file);
                 return;
             }

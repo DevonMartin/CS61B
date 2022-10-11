@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +36,7 @@ class Repository implements Serializable {
     /** The linked list of commits, starting with the oldest. */
     private String latestCommit;
     /** The files staged for removal. */
-    ArrayList<String> rmStaging = new ArrayList<>();
+    ArrayList<String> rmStage = new ArrayList<>();
 
     /** Initializes a new repository and calls helper functions to:
      *  -create .gitlet and related directories
@@ -112,6 +111,7 @@ class Repository implements Serializable {
     }
     static void commit(Repository repo, String msg) {
         repo.latestCommit = Commit.makeCommitment(repo, msg);
+        repo.rmStage = new ArrayList<>();
         updateBranch(repo);
     }
     static void updateBranch(Repository repo) {
@@ -120,7 +120,30 @@ class Repository implements Serializable {
         writeObject(HEAD, repo);
     }
     static void rm(Repository repo, String file) {
-
+        Boolean check = rmCommit(repo, file);
+        if (!(rmStaging(file) || check)) {
+            System.out.println("No reason to remove the file.");
+        }
+    }
+    private static Boolean rmStaging(String file) {
+        if (plainFilenamesIn(STAGING_DIR).contains(file)) {
+            join(STAGING_DIR, file).delete();
+            return true;
+        }
+        return false;
+    }
+    private static Boolean rmCommit(Repository repo, String fileName) {
+        Commit commit = Commit.getCommitFromSha(repo.latestCommit);
+        if (Commit.containsFile(commit, fileName)) {
+            repo.rmStage.add(fileName);
+            updateBranch(repo);
+            File file = join(CWD, fileName);
+            if (file.exists()) {
+                file.delete();
+            }
+            return true;
+        }
+        return false;
     }
     static void log(Repository repo) {
         Commit commit = Commit.getCommitFromSha(repo.latestCommit);
@@ -168,7 +191,7 @@ class Repository implements Serializable {
     static void status(Repository repo) {
         statusBranches(repo.branch);
         statusStagedFiles();
-        statusRemovedFiles();
+        statusRemovedFiles(repo);
         statusNotStaged();
         statusUntracked(repo.latestCommit);
         System.out.println();
@@ -191,8 +214,11 @@ class Repository implements Serializable {
             }
         }
     }
-    private static void statusRemovedFiles() {
+    private static void statusRemovedFiles(Repository repo) {
         System.out.println("\n=== Removed Files ===");
+        for (String file : repo.rmStage) {
+            System.out.println(file);
+        }
     }
     private static void statusNotStaged() {
         System.out.println("\n=== Modifications Not Staged For Commit ===");
