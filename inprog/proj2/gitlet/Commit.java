@@ -42,7 +42,7 @@ class Commit implements Serializable {
     private static Commit getCommit(String msg, String parent) {
         return new Commit(msg, new Date(), parent, null);
     }
-    private Commit getCommit(String msg, String parent1, String parent2) {
+    private static Commit getCommit(String msg, String parent1, String parent2) {
         return new Commit(msg, new Date(), parent1, parent2);
     }
     static Commit getCommitFromSha(String sha) {
@@ -122,7 +122,7 @@ class Commit implements Serializable {
                 fileName.substring(0, 2), fileName.substring(2)).toPath();
         try {
             Files.move(file, destination, StandardCopyOption.REPLACE_EXISTING);
-        } catch(IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
