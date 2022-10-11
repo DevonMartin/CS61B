@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.List;
 
 import static gitlet.Utils.*;
@@ -24,10 +25,10 @@ class Repository implements Serializable {
     /** The .gitlet directory. */
     private static final File GITLET_DIR = join(CWD, ".gitlet");
     /** The head, objects, refs and staging directories within .gitlet. */
-    public static final File HEAD = join(GITLET_DIR, "HEAD");
-    public static final File OBJECTS_DIR = join(GITLET_DIR, "objects");
-    public static final File REFS_DIR = join(GITLET_DIR, "refs");
-    private static final File STAGING_DIR = join(GITLET_DIR, "staging");
+    private static final File HEAD = join(GITLET_DIR, "HEAD");
+    static final File OBJECTS_DIR = join(GITLET_DIR, "objects");
+    private static final File REFS_DIR = join(GITLET_DIR, "refs");
+    static final File STAGING_DIR = join(GITLET_DIR, "staging");
     /** The possible characters in a hexadecimal string. */
     private static final String[] HEXADECIMAL_CHARS = { "0", "1", "2", "3", "4", "5", "6", "7",
                                                   "8", "9", "a", "b", "c", "d", "e", "f" };
@@ -35,6 +36,8 @@ class Repository implements Serializable {
     private String branch;
     /** The linked list of commits, starting with the oldest. */
     private String latestCommit;
+    /** The files staged for removal. */
+    ArrayList<String> rmStaging = new ArrayList<>();
 
     /** Initializes a new repository and calls helper functions to:
      *  -create .gitlet and related directories
@@ -44,8 +47,8 @@ class Repository implements Serializable {
      */
     Repository() {
         if (inRepo()) {
-            String s = "A Gitlet version-control system already exists in the current directory.";
-            System.out.println(s);
+            System.out.println("A Gitlet version-control system" +
+                    " already exists in the current directory.");
             return;
         }
         createDirectories();
@@ -56,7 +59,7 @@ class Repository implements Serializable {
     }
 
     static boolean inRepo() {
-        Path path = Paths.get(GITLET_DIR.toURI());
+        Path path = GITLET_DIR.toPath();
         return Files.exists(path);
     }
 
@@ -74,6 +77,9 @@ class Repository implements Serializable {
         REFS_DIR.mkdir();
         STAGING_DIR.mkdir();
     }
+    static String latestCommit(Repository repo) {
+        return repo.latestCommit;
+    }
     private static void setHeadToThis(String branch) {
         Path thisBranch = join(REFS_DIR, branch).toPath();
         Path headFile = HEAD.toPath();
@@ -86,6 +92,10 @@ class Repository implements Serializable {
     static void add(Repository repo, String file) {
         if (plainFilenamesIn(CWD).contains(file)) {
             Commit c = Commit.getCommitFromSha(repo.latestCommit);
+            /** If file has been staged already but has been changed
+             * back to the version tracked by the current commit,
+             * remove it from the staging area.
+             */
             if (plainFilenamesIn(STAGING_DIR).contains(file) && Commit.containsFile(c, file)) {
                 join(STAGING_DIR, file).delete();
                 return;
@@ -99,6 +109,18 @@ class Repository implements Serializable {
             return;
         }
         System.out.println("File does not exist.");
+    }
+    static void commit(Repository repo, String msg) {
+        repo.latestCommit = Commit.makeCommitment(repo, msg);
+        updateBranch(repo);
+    }
+    static void updateBranch(Repository repo) {
+        File branch = join(REFS_DIR, repo.branch);
+        writeObject(branch, repo);
+        writeObject(HEAD, repo);
+    }
+    static void rm(Repository repo, String file) {
+
     }
     static void log(Repository repo) {
         Commit commit = Commit.getCommitFromSha(repo.latestCommit);
@@ -174,6 +196,10 @@ class Repository implements Serializable {
     }
     private static void statusNotStaged() {
         System.out.println("\n=== Modifications Not Staged For Commit ===");
+        System.out.println("Tracked in the current commit, changed in the working directory, but not staged;");
+        for (String wrkDirFile : plainFilenamesIn(CWD)) {
+
+        }
     }
     private static void statusUntracked(String latestCommit) {
         System.out.println("\n=== Untracked Files ===");

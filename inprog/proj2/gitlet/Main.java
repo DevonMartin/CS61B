@@ -48,7 +48,7 @@ public class Main {
                 break;
             case "commit":
                 if (paramLenIsCorrect(args, 2)) {
-
+                    Repository.commit(repo, args[1]);
                 }
                 // TODO: handle the `commit [filename]` command
                 break;
