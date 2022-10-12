@@ -12,6 +12,12 @@ public class Main {
      * @return     Whether the number of arguments is correct.
      */
     private static boolean paramLenIsCorrect(String[] args, int n) {
+        for (String s : args) {
+            if (s.equals("")) {
+                n = -1;
+                break;
+            }
+        }
         if (args.length != n) {
             System.out.println("Incorrect operands.");
             return false;

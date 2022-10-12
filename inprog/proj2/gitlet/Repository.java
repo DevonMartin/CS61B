@@ -99,6 +99,10 @@ class Repository implements Serializable {
                 join(STAGING_DIR, file).delete();
                 return;
             }
+            /* If file is tracked and unchanged, do nothing. */
+            if (Commit.containsExactFile(c, join(CWD, file))) {
+                return;
+            }
             try {
                 Path from = join(CWD, file).toPath(), to = join(STAGING_DIR, file).toPath();
                 Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
@@ -113,6 +117,10 @@ class Repository implements Serializable {
         System.out.println("File does not exist.");
     }
     static void commit(Repository repo, String msg) {
+        if (plainFilenamesIn(STAGING_DIR).size() == 0) {
+            System.out.println("No changes added to the commit.");
+            return;
+        }
         repo.latestCommit = Commit.makeCommitment(repo, msg);
         repo.rmStage = new ArrayList<>();
         updateBranch(repo);
