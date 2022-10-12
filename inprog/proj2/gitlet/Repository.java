@@ -35,6 +35,9 @@ class Repository implements Serializable {
     private String branch;
     /** The linked list of commits, starting with the oldest. */
     private String latestCommit;
+    static Commit getLatestCommit(Repository repo) {
+        return Commit.getCommitFromSha(repo.latestCommit);
+    }
     /** The files staged for removal. */
     ArrayList<String> rmStage = new ArrayList<>();
 
@@ -90,7 +93,7 @@ class Repository implements Serializable {
     }
     static void add(Repository repo, String file) {
         if (plainFilenamesIn(CWD).contains(file)) {
-            Commit c = Commit.getCommitFromSha(repo.latestCommit);
+            Commit c = getLatestCommit(repo);
             /** If file has been staged already but has been changed
              * back to the version tracked by the current commit,
              * remove it from the staging area.
@@ -100,7 +103,7 @@ class Repository implements Serializable {
                 return;
             }
             /* If file is tracked and unchanged, do nothing. */
-            if (Commit.containsExactFile(c, join(CWD, file))) {
+            if (!checkForChanges(repo)) {
                 return;
             }
             try {
@@ -125,6 +128,16 @@ class Repository implements Serializable {
         repo.rmStage = new ArrayList<>();
         updateBranch(repo);
     }
+    static boolean checkForChanges(Repository repo) {
+        Commit c = getLatestCommit(repo);
+        for (String file : plainFilenamesIn(CWD)) {
+            if (!Commit.containsFileName(c, file)) {
+                return true;
+            }
+        }
+        return plainFilenamesIn(STAGING_DIR).size() == 0
+                && repo.rmStage.size() == 0;
+    }
     static void updateBranch(Repository repo) {
         File branch = join(REFS_DIR, repo.branch);
         writeObject(branch, repo);
@@ -144,7 +157,7 @@ class Repository implements Serializable {
         return false;
     }
     private static Boolean rmCommit(Repository repo, String fileName) {
-        Commit commit = Commit.getCommitFromSha(repo.latestCommit);
+        Commit commit = Repository.getLatestCommit(repo);
         if (Commit.containsFileName(commit, fileName)) {
             repo.rmStage.add(fileName);
             updateBranch(repo);
@@ -157,7 +170,7 @@ class Repository implements Serializable {
         return false;
     }
     static void log(Repository repo) {
-        Commit commit = Commit.getCommitFromSha(repo.latestCommit);
+        Commit commit = Repository.getLatestCommit(repo);
         Commit.log(commit);
     }
     static void globalLog() {
@@ -233,7 +246,7 @@ class Repository implements Serializable {
     }
     private static void statusNotStaged(Repository repo) {
         System.out.println("\n=== Modifications Not Staged For Commit ===");
-        Commit commit = Commit.getCommitFromSha(repo.latestCommit);
+        Commit commit = Repository.getLatestCommit(repo);
         for (String fileString : plainFilenamesIn(CWD)) {
             File cwdFile = join(CWD, fileString);
             File stagingFile = join(STAGING_DIR, fileString);
@@ -266,7 +279,7 @@ class Repository implements Serializable {
     }
     private static void statusUntracked(Repository repo) {
         System.out.println("\n=== Untracked Files ===");
-        Commit c = Commit.getCommitFromSha(repo.latestCommit);
+        Commit c = Repository.getLatestCommit(repo);
         for (String file : plainFilenamesIn(CWD)) {
             List<String> stagedFiles = plainFilenamesIn(STAGING_DIR);
             if (!(Commit.containsFileName(c, file) || stagedFiles.contains(file))
@@ -279,7 +292,7 @@ class Repository implements Serializable {
         Commit c = null;
         String reqFile;
         if (args.length == 3 && args[1].equals("--")) {
-            c = Commit.getCommitFromSha(latestCommit(repo));
+            c = Repository.getLatestCommit(repo);
             reqFile = args[2];
             checkoutGetFile(c, reqFile);
         } else if (args.length == 4 && args[2].equals("--")) {

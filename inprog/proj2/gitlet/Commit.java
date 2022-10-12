@@ -106,9 +106,8 @@ class Commit implements Serializable {
      * @return     The sha of the commitment for storage in the repo.
      */
     static String makeCommitment(Repository repo, String msg) {
-        String parentString = Repository.latestCommit(repo);
-        Commit child = getCommit(msg, parentString);
-        Commit parent = getCommitFromSha(parentString);
+        Commit parent = Repository.getLatestCommit(repo);
+        Commit child = getCommit(msg, parent.sha);
         /* Children start with the same files as their parents. */
         child.files = (ArrayList<String>) parent.files.clone();
         for (String file : plainFilenamesIn(Repository.STAGING_DIR)) {
