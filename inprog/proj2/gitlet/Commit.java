@@ -59,7 +59,7 @@ class Commit implements Serializable {
     static Boolean isCommit(String fileName) {
         return fileName.length() == COMMIT_NAME_LENGTH;
     }
-    static Boolean containsFile(Commit commit, String file) {
+    static Boolean containsFileName(Commit commit, String file) {
         for (String trackedFile : commit.files) {
             trackedFile = trackedFile.substring(UID_LENGTH);
             if (trackedFile.equals(file)) {
@@ -67,6 +67,14 @@ class Commit implements Serializable {
             }
         }
         return false;
+    }
+    static Boolean containsExactFile(Commit commit, File file) {
+        String fileName = sha1File(file) + file.getName();
+        return commit.files.contains(fileName);
+    }
+    static String sha1File(File file) {
+        String s = readContentsAsString(file);
+        return sha1(serialize(s));
     }
     static String firstCommit() {
         Commit c = new Commit("initial commit", new Date(0), null, null);
@@ -95,7 +103,7 @@ class Commit implements Serializable {
         for (String file : plainFilenamesIn(Repository.STAGING_DIR)) {
             /** Remove the previous version of a file
              * that has been updated and staged. */
-            if (Commit.containsFile(child, file)) {
+            if (Commit.containsFileName(child, file)) {
                 child.files.remove(file);
             }
             /* Add the file to the new commit. */
@@ -108,13 +116,12 @@ class Commit implements Serializable {
         child.saveCommitment();
         return child.sha;
     }
-    private static void addFileToCommit(String file, Commit commit) {
-        File f = join(Repository.STAGING_DIR, file);
-        byte[] b = serialize(f);
-        String sha = sha1(b);
-        String fullFileName = sha + file;
+    private static void addFileToCommit(String fileString, Commit commit) {
+        File file = join(Repository.STAGING_DIR, fileString);
+        String sha = sha1File(file);
+        String fullFileName = sha + fileString;
         commit.files.add(fullFileName);
-        saveFileForCommit(f.toPath(), fullFileName);
+        saveFileForCommit(file.toPath(), fullFileName);
     }
     /* Move a file from the staging directory into it's sha-directory. */
     private static void saveFileForCommit(Path file, String fileName) {

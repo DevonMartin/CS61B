@@ -50,13 +50,11 @@ public class Main {
                 if (paramLenIsCorrect(args, 2)) {
                     Repository.commit(repo, args[1]);
                 }
-                // TODO: handle the `commit [filename]` command
                 break;
             case "rm":
                 if (paramLenIsCorrect(args, 2)) {
                     Repository.rm(repo, args[1]);
                 }
-                // TODO: handle the `rm [filename]` command
                 break;
             case "log":
                 if (paramLenIsCorrect(args, 1)) {
