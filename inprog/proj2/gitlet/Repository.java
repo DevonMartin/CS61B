@@ -62,7 +62,7 @@ class Repository implements Serializable {
         return Files.exists(path);
     }
 
-    static Repository loadRepo() {
+    static Repository loadHead() {
         return readObject(HEAD, Repository.class);
     }
 
@@ -265,6 +265,53 @@ class Repository implements Serializable {
                 || (repo.rmStage.contains(file))) {
                 System.out.println(file);
             }
+        }
+    }
+    static void checkout(Repository repo, String[] args) {
+        Commit c = null;
+        String reqFile;
+        if (args.length == 3 && args[1].equals("--")) {
+            c = Commit.getCommitFromSha(latestCommit(repo));
+            reqFile = args[2];
+            checkoutGetFile(c, reqFile);
+        } else if (args.length == 4 && args[2].equals("--")) {
+            reqFile = args[3];
+            String dirString = args[1].substring(0, 2);
+            File dir = join(OBJECTS_DIR, dirString);
+            String commitStr = args[1].substring(2);
+            Boolean found = false;
+            for (String file : plainFilenamesIn(dir)) {
+                String fileSubstring = file.substring(0, commitStr.length());
+                if (Commit.isCommit(file) && fileSubstring.equals(commitStr)) {
+                    c = Commit.getCommitFromSha(dirString + file);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                System.out.println("No commit with that id exists.");
+            } else {
+                checkoutGetFile(c, reqFile);
+            }
+        } else if (args.length == 2) {
+
+        }
+    }
+    private static void checkoutGetFile(Commit c, String reqFile) {
+        if (Commit.containsFileName(c, reqFile)) {
+            String fullFileName = Commit.getFile(c, reqFile);
+            String dirName = fullFileName.substring(0, 2);
+            String fileName = fullFileName.substring(2);
+            File dir = join(OBJECTS_DIR, dirName);
+            Path to = join(CWD, reqFile).toPath();
+            Path from = join(dir, fileName).toPath();
+            try {
+                Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("File does not exist in that commit.");
         }
     }
     static void branch(Repository repo, String name) {

@@ -75,6 +75,14 @@ class Commit implements Serializable {
         String fileName = sha1File(file) + file.getName();
         return commit.files.contains(fileName);
     }
+    public static String getFile(Commit c, String reqFile) {
+        for (String fileName : c.files) {
+            if (fileName.substring(UID_LENGTH).equals(reqFile)) {
+                return fileName;
+            }
+        }
+        return "";
+    }
     static String sha1File(File file) {
         String s = readContentsAsString(file);
         return sha1(serialize(s));
@@ -107,7 +115,7 @@ class Commit implements Serializable {
             /** Remove the previous version of a file
              * that has been updated and staged. */
             if (Commit.containsFileName(child, file)) {
-                child.files.remove(file);
+                Commit.removeFileFromCommit(child, file);
             }
             /* Add the file to the new commit. */
             addFileToCommit(file, child);

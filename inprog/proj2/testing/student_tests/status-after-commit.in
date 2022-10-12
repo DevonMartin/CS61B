@@ -5,10 +5,34 @@ I definitions.inc
 + wug.txt wug.txt
 > add wug.txt
 <<<
+> status
+=== Branches ===
+\*master
+
+=== Staged Files ===
+wug.txt
+
+=== Removed Files ===
+
+=== Modifications Not Staged For Commit ===
+
+=== Untracked Files ===
+${ARBLINES}
+
+<<<*
 > commit "added wug"
 <<<
 > status
+=== Branches ===
+\*master
+
 === Staged Files ===
-TODO
+
+=== Removed Files ===
+
+=== Modifications Not Staged For Commit ===
+
+=== Untracked Files ===
+${ARBLINES}
 
 <<<*

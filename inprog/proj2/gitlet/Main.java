@@ -32,74 +32,73 @@ public class Main {
         if (firstArg.equals("init")) {
             if (paramLenIsCorrect(args, 1)) {
                 new Repository();
-                return;
             }
-        }
-        if (!Repository.inRepo()) {
+        } else if (!Repository.inRepo()) {
             System.out.println("Not in an initialized Gitlet directory.");
             return;
-        }
-        Repository repo = Repository.loadRepo();
-        switch (firstArg) {
-            case "add":
-                if (paramLenIsCorrect(args, 2)) {
-                    Repository.add(repo, args[1]);
-                }
-                break;
-            case "commit":
-                if (paramLenIsCorrect(args, 2)) {
-                    Repository.commit(repo, args[1]);
-                }
-                break;
-            case "rm":
-                if (paramLenIsCorrect(args, 2)) {
-                    Repository.rm(repo, args[1]);
-                }
-                break;
-            case "log":
-                if (paramLenIsCorrect(args, 1)) {
-                    Repository.log(repo);
-                }
-                break;
-            case "global-log":
-                if (paramLenIsCorrect(args, 1)) {
-                    Repository.globalLog();
-                }
-                break;
-            case "find":
-                if (paramLenIsCorrect(args, 2)) {
-                    Repository.find(args[1]);
-                }
-                break;
-            case "status":
-                if (paramLenIsCorrect(args, 1)) {
-                    Repository.status(repo);
-                }
-                break;
-            case "checkout":
-                // TODO: handle the `checkout [filename]` command
-                break;
-            case "branch":
-                if (paramLenIsCorrect(args, 2)) {
-                    Repository.branch(repo, args[1]);
-                }
-                break;
-            case "rm-branch":
-                if (paramLenIsCorrect(args, 2)) {
-                    Repository.rmBranch(repo, args[1]);
-                }
-                break;
-            case "reset":
-                if (paramLenIsCorrect(args, 2)) {
+        } else {
+            Repository repo = Repository.loadHead();
+            switch (firstArg) {
+                case "add":
+                    if (paramLenIsCorrect(args, 2)) {
+                        Repository.add(repo, args[1]);
+                    }
+                    break;
+                case "commit":
+                    if (paramLenIsCorrect(args, 2)) {
+                        Repository.commit(repo, args[1]);
+                    }
+                    break;
+                case "rm":
+                    if (paramLenIsCorrect(args, 2)) {
+                        Repository.rm(repo, args[1]);
+                    }
+                    break;
+                case "log":
+                    if (paramLenIsCorrect(args, 1)) {
+                        Repository.log(repo);
+                    }
+                    break;
+                case "global-log":
+                    if (paramLenIsCorrect(args, 1)) {
+                        Repository.globalLog();
+                    }
+                    break;
+                case "find":
+                    if (paramLenIsCorrect(args, 2)) {
+                        Repository.find(args[1]);
+                    }
+                    break;
+                case "status":
+                    if (paramLenIsCorrect(args, 1)) {
+                        Repository.status(repo);
+                    }
+                    break;
+                case "checkout":
+                    Repository.checkout(repo, args);
+                    break;
+                case "branch":
+                    if (paramLenIsCorrect(args, 2)) {
+                        Repository.branch(repo, args[1]);
+                    }
+                    break;
+                case "rm-branch":
+                    if (paramLenIsCorrect(args, 2)) {
+                        Repository.rmBranch(repo, args[1]);
+                    }
+                    break;
+                case "reset":
+                    if (paramLenIsCorrect(args, 2)) {
 
-                }
-                // TODO: handle the `reset [filename]` command
-                break;
-            case "merge":
-                // TODO: handle the `merge [filename]` command
-                break;
-            default:
-                System.out.println("No command with that name exists.");
+                    }
+                    // TODO: handle the `reset [filename]` command
+                    break;
+                case "merge":
+                    // TODO: handle the `merge [filename]` command
+                    break;
+                default:
+                    System.out.println("No command with that name exists.");
+            }
         }
     }
 }
