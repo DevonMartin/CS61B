@@ -178,8 +178,8 @@ class Repository implements Serializable {
                         if (Commit.isCommit(file)) {
                             File f = join(dir, file);
                             Commit c = readObject(f, Commit.class);
-                            if (c.message().equals(msg)) {
-                                System.out.println(c.sha());
+                            if (Commit.message(c).equals(msg)) {
+                                System.out.println(Commit.sha(c));
                                 found = true;
                             }
                         }
@@ -195,7 +195,7 @@ class Repository implements Serializable {
         statusBranches(repo.branch);
         statusStagedFiles();
         statusRemovedFiles(repo);
-        statusNotStaged(repo.latestCommit);
+        statusNotStaged(repo);
         statusUntracked(repo);
         System.out.println();
     }
@@ -223,43 +223,38 @@ class Repository implements Serializable {
             System.out.println(file);
         }
     }
-    private static void statusNotStaged(String latestCommit) {
-        Commit c = Commit.getCommitFromSha(latestCommit);
-        statusNotStaged1(c);
-        statusNotStaged2(c);
-        statusNotStaged3(c);
-        statusNotStaged4(c);
-    }
-    /* Tracked in the current commit, changed in the working directory, but not staged */
-    private static void statusNotStaged1(Commit commit) {
+    private static void statusNotStaged(Repository repo) {
         System.out.println("\n=== Modifications Not Staged For Commit ===");
+        Commit commit = Commit.getCommitFromSha(repo.latestCommit);
         for (String fileString : plainFilenamesIn(CWD)) {
-            File file = join(CWD, fileString);
-            if (Commit.containsFileName(commit, fileString)
-                && !Commit.containsExactFile(commit, file)
-                && !plainFilenamesIn(STAGING_DIR).contains(fileString)) {
-                System.out.println(fileString + " (modified)");
-            }
-        }
-    }
-    /* Staged for addition, but with different contents than in the working directory */
-    private static void statusNotStaged2(Commit commit) {
-        for (String fileString : plainFilenamesIn(CWD)) {
-            File CWDFile = join(CWD, fileString);
+            File cwdFile = join(CWD, fileString);
             File stagingFile = join(STAGING_DIR, fileString);
-            if (plainFilenamesIn(STAGING_DIR).contains(fileString)
-                && !Commit.sha1File(CWDFile).equals(Commit.sha1File(stagingFile))) {
+            if (Commit.containsFileName(commit, fileString)
+                    && !Commit.containsExactFile(commit, cwdFile)
+                    && !stagingFile.exists()) {
+                System.out.println(fileString + " (modified)");
+            } else if (stagingFile.exists()
+                    && !Commit.sha1File(cwdFile).equals(Commit.sha1File(stagingFile))) {
                 System.out.println(fileString + " (modified)");
             }
         }
-    }
-    /* Staged for addition, but deleted in the working directory */
-    private static void statusNotStaged3(Commit commit) {
-    }
-    /** Not staged for removal, but tracked in the current commit
-     * and deleted from the working directory
-     */
-    private static void statusNotStaged4(Commit commit) {
+        for (String fileString : plainFilenamesIn(STAGING_DIR)) {
+            File cwdFile = join(CWD, fileString);
+            File stagingFile = join(STAGING_DIR, fileString);
+            if (!cwdFile.exists()) {
+                System.out.println(fileString + " (deleted)");
+            }
+        }
+        for (String fileString : Commit.files(commit)) {
+            fileString = fileString.substring(UID_LENGTH);
+            File cwdFile = join(CWD, fileString);
+            File stagingFile = join(STAGING_DIR, fileString);
+            if (!repo.rmStage.contains(fileString)
+                    && !cwdFile.exists()
+                    && !stagingFile.exists()) {
+                System.out.println(fileString + " (deleted)");
+            }
+        }
     }
     private static void statusUntracked(Repository repo) {
         System.out.println("\n=== Untracked Files ===");

@@ -50,11 +50,14 @@ class Commit implements Serializable {
         File file = new File(fileDirectory + "/" + sha.substring(2));
         return readObject(file, Commit.class);
     }
-    String sha() {
-        return sha;
+    static String sha(Commit c) {
+        return c.sha;
     }
-    String message() {
-        return message;
+    static String message(Commit c) {
+        return c.message;
+    }
+    static ArrayList<String> files(Commit c) {
+        return c.files;
     }
     static Boolean isCommit(String fileName) {
         return fileName.length() == COMMIT_NAME_LENGTH;
@@ -79,7 +82,7 @@ class Commit implements Serializable {
     static String firstCommit() {
         Commit c = new Commit("initial commit", new Date(0), null, null);
         c.saveCommitment();
-        return c.sha();
+        return Commit.sha(c);
     }
     public void saveCommitment() {
         byte[] b = serialize(this);
@@ -113,6 +116,13 @@ class Commit implements Serializable {
         for (String file : repo.rmStage) {
             Commit.removeFileFromCommit(child, file);
         }
+        /* Removes files from commit that are removed but not staged for removal. */
+        for (String fileString : files(parent)) {
+            String fileSubstring = fileString.substring(UID_LENGTH);
+            if (!join(Repository.CWD, fileSubstring).exists()) {
+                files(child).remove(fileString);
+            }
+        }
         child.saveCommitment();
         return child.sha;
     }
@@ -145,12 +155,12 @@ class Commit implements Serializable {
 
     @Override
     public String toString() {
-        StringBuilder str = new StringBuilder("===\ncommit " + sha() + "\n");
+        StringBuilder str = new StringBuilder("===\ncommit " + sha + "\n");
         if (parent2 != null) {
             str.append("Merge: ").append(parent1, 0, 7).append(" ");
             str.append(parent2, 0, 7).append("\n");
         }
-        str.append("Date: ").append(time).append("\n").append(message()).append("\n");
+        str.append("Date: ").append(time).append("\n").append(message).append("\n");
         return str.toString();
     }
 
