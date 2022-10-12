@@ -224,15 +224,15 @@ class Repository implements Serializable {
         }
     }
     private static void statusNotStaged(String latestCommit) {
-        statusNotStaged1(latestCommit);
-        statusNotStaged2(latestCommit);
-        statusNotStaged3(latestCommit);
-        statusNotStaged4(latestCommit);
+        Commit c = Commit.getCommitFromSha(latestCommit);
+        statusNotStaged1(c);
+        statusNotStaged2(c);
+        statusNotStaged3(c);
+        statusNotStaged4(c);
     }
     /* Tracked in the current commit, changed in the working directory, but not staged */
-    private static void statusNotStaged1(String latestCommit) {
+    private static void statusNotStaged1(Commit commit) {
         System.out.println("\n=== Modifications Not Staged For Commit ===");
-        Commit commit = Commit.getCommitFromSha(latestCommit);
         for (String fileString : plainFilenamesIn(CWD)) {
             File file = join(CWD, fileString);
             if (Commit.containsFileName(commit, fileString)
@@ -243,15 +243,23 @@ class Repository implements Serializable {
         }
     }
     /* Staged for addition, but with different contents than in the working directory */
-    private static void statusNotStaged2(String latestCommit) {
+    private static void statusNotStaged2(Commit commit) {
+        for (String fileString : plainFilenamesIn(CWD)) {
+            File CWDFile = join(CWD, fileString);
+            File stagingFile = join(STAGING_DIR, fileString);
+            if (plainFilenamesIn(STAGING_DIR).contains(fileString)
+                && !Commit.sha1File(CWDFile).equals(Commit.sha1File(stagingFile))) {
+                System.out.println(fileString + " (modified)");
+            }
+        }
     }
     /* Staged for addition, but deleted in the working directory */
-    private static void statusNotStaged3(String latestCommit) {
+    private static void statusNotStaged3(Commit commit) {
     }
     /** Not staged for removal, but tracked in the current commit
      * and deleted from the working directory
      */
-    private static void statusNotStaged4(String latestCommit) {
+    private static void statusNotStaged4(Commit commit) {
     }
     private static void statusUntracked(Repository repo) {
         System.out.println("\n=== Untracked Files ===");
