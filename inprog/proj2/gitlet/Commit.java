@@ -9,6 +9,7 @@ import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import static gitlet.Utils.*;
 
@@ -37,11 +38,11 @@ class Commit implements Serializable {
     /** The pattern used for a displaying a commits
      * time.
      */
-     String pattern = "EEE MMM dd HH:mm:ss yyyy Z";
+    String pattern = "EEE MMM dd HH:mm:ss yyyy Z";
     /** The formatter used for a displaying a commits
      * time.
      */
-     SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+    SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
     /** The time a commit was made.
      */
     private final String time;
@@ -149,13 +150,18 @@ class Commit implements Serializable {
     /** Searches for and returns a Commit by a full or partial name.
      */
     static Commit getCommitFromString(String commit) {
-        String dirString = commit.substring(0, 2);
-        File dir = join(Repository.OBJECTS_DIR, dirString);
-        String commitStr = commit.substring(2);
-        for (String file : plainFilenamesIn(dir)) {
-            String fileSubstring = file.substring(0, commitStr.length());
-            if (Commit.isCommit(file) && fileSubstring.equals(commitStr)) {
-                return readObject(join(dir, file), Commit.class);
+        if (commit.length() > 2) {
+            String dirString = commit.substring(0, 2);
+            File dir = join(Repository.OBJECTS_DIR, dirString);
+            List<String> dirFiles = plainFilenamesIn(dir);
+            if (dirFiles.size() != 0) {
+                String commitStr = commit.substring(2);
+                for (String file : plainFilenamesIn(dir)) {
+                    String fileSubstring = file.substring(0, commitStr.length());
+                    if (Commit.isCommit(file) && fileSubstring.equals(commitStr)) {
+                        return readObject(join(dir, file), Commit.class);
+                    }
+                }
             }
         }
         System.out.println("No commit with that id exists.");

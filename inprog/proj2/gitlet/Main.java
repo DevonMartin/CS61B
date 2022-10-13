@@ -77,7 +77,7 @@ public class Main {
                     break;
                 case "reset":
                     paramLenCheck(args, 2);
-                    // TODO: handle the `reset [filename]` command
+                    repo.reset(args[1]);
                     break;
                 case "merge":
                     // TODO: handle the `merge [filename]` command

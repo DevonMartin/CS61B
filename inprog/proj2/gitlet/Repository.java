@@ -55,7 +55,7 @@ class Repository implements Serializable {
                                                         "8", "9", "a", "b", "c", "d", "e", "f" };
     /** The branch this repo belongs to.
      */
-    private String branch = "master";
+    private String currentBranch = "master";
     /** The last commit made on this repository, stored by
      * its full unique ID.
      */
@@ -83,8 +83,8 @@ class Repository implements Serializable {
         }
         createDirectories();
         latestCommit = Commit.firstCommit();
-        branch(branch);
-        setHeadToThis(this.branch);
+        branch(currentBranch);
+        setHeadToThis(currentBranch);
     }
     /** Returns true if the CWD contains a .gitlet/ dir.
      */
@@ -96,6 +96,9 @@ class Repository implements Serializable {
      */
     static Repository loadHead() {
         return readObject(HEAD, Repository.class);
+    }
+    private static Repository loadBranch(String branch) {
+        return readObject(join(REFS_DIR, branch), Repository.class);
     }
     /** Creates .gitlet/ dir and all dirs within.
      */
@@ -170,7 +173,7 @@ class Repository implements Serializable {
      * branch file and updates HEAD to reflect this.
      */
     void updateBranch() {
-        File branchFile = join(REFS_DIR, this.branch);
+        File branchFile = join(REFS_DIR, currentBranch);
         writeObject(branchFile, this);
         writeObject(HEAD, this);
     }
@@ -275,7 +278,7 @@ class Repository implements Serializable {
     private void statusBranches() {
         System.out.println("=== Branches ===");
         for (String b : plainFilenamesIn(REFS_DIR)) {
-            if (b.equals(branch)) {
+            if (b.equals(currentBranch)) {
                 System.out.print("*");
             }
             System.out.println(b);
@@ -361,12 +364,13 @@ class Repository implements Serializable {
             Commit c = Commit.getCommitFromString(args[1]);
             checkoutGetFile(c, args[3]);
         } else if (args.length == 2) {
-            System.out.println("TODO");
+            checkoutChangeBranch(args[1]);
         }
     }
 
     /** Helper function for checkout which copies a previously committed
      * file into the CWD.
+     * @param reqFile the original name of a file.
      */
     private void checkoutGetFile(Commit c, String reqFile) {
         if (c.containsFileName(reqFile)) {
@@ -385,7 +389,50 @@ class Repository implements Serializable {
             System.out.println("File does not exist in that commit.");
         }
     }
-
+    /** Helper function for checkout which updates the HEAD branch
+     * to the specified branch if the branch exists, the branch is
+     * not the current branch and the current branch contains no
+     * untracked files which would be overridden. The staging area
+     * is cleared.
+     */
+    private void checkoutChangeBranch(String reqBranch) {
+        if (reqBranch.equals(currentBranch)) {
+            System.out.println("No need to checkout the current branch.");
+            return;
+        }
+        Commit currentLatestCommit = getLatestCommit();
+        List<String> stagedFiles = plainFilenamesIn(STAGING_DIR);
+        List<String> filesInCWD = plainFilenamesIn(CWD);
+        for (String file : filesInCWD) {
+            if (!(currentLatestCommit.containsFileName(file) || stagedFiles.contains(file))
+                    || (rmStage.contains(file))) {
+                System.out.println(
+                        "There is an untracked file in the way;"
+                                + " delete it, or add and commit it first."
+                );
+                return;
+            }
+        }
+        File branchFile = join(REFS_DIR, reqBranch);
+        if (!branchFile.exists()) {
+            System.out.println("No such branch exists.");
+            return;
+        }
+        for (String file : filesInCWD) {
+            restrictedDelete(join(CWD, file));
+        }
+        setHeadToThis(reqBranch);
+        Repository newHead = loadHead();
+        Commit newLatestCommit = newHead.getLatestCommit();
+        for (String file : newLatestCommit.getCommittedFiles()) {
+            checkoutGetFile(newLatestCommit, file);
+        }
+        if (stagedFiles.size() != 0) {
+            for (String file : stagedFiles) {
+                restrictedDelete(join(STAGING_DIR, file));
+            }
+        }
+    }
     /** Creates a branch, which is a pointer to the current repository,
      * with the provided name, if one with such name does not currently
      * exist.
@@ -398,6 +445,7 @@ class Repository implements Serializable {
             }
         }
         File branchFile = join(REFS_DIR, name);
+        currentBranch = name;
         writeObject(branchFile, this);
     }
 
@@ -406,7 +454,7 @@ class Repository implements Serializable {
      * had.
      */
     void rmBranch(String name) {
-        if (name.equals(branch)) {
+        if (name.equals(currentBranch)) {
             System.out.println("Cannot remove the current branch.");
         } else if (!join(REFS_DIR, name).delete()) {
             System.out.println("A branch with that name does not exist.");
