@@ -23,7 +23,7 @@ class Repository implements Serializable {
     static final File CWD = new File(System.getProperty("user.dir"));
     /** The .gitlet directory. */
     private static final File GITLET_DIR = join(CWD, ".gitlet");
-    /** The head, objects, refs and staging directories within .gitlet. */
+    /** The directories within .gitlet. */
     private static final File HEAD = join(GITLET_DIR, "HEAD");
     static final File OBJECTS_DIR = join(GITLET_DIR, "objects");
     private static final File REFS_DIR = join(GITLET_DIR, "refs");
@@ -32,11 +32,12 @@ class Repository implements Serializable {
     private static final String[] HEXADECIMAL_CHARS = { "0", "1", "2", "3", "4", "5", "6", "7",
                                                         "8", "9", "a", "b", "c", "d", "e", "f" };
     /** The branch this repo belongs to. */
-    private String branch;
+    private String branch = "master";
     /** The linked list of commits, starting with the oldest. */
     private String latestCommit;
-    static Commit getLatestCommit(Repository repo) {
-        return Commit.getCommitFromSha(repo.latestCommit);
+    /* Return the latest commit of a repository. */
+    Commit getLatestCommit() {
+        return Commit.getCommitFromSha(latestCommit);
     }
     /** The files staged for removal. */
     ArrayList<String> rmStage = new ArrayList<>();
@@ -55,8 +56,7 @@ class Repository implements Serializable {
         }
         createDirectories();
         latestCommit = Commit.firstCommit();
-        this.branch = "master";
-        branch(this, this.branch);
+        branch(branch);
         setHeadToThis(this.branch);
     }
 
@@ -79,9 +79,6 @@ class Repository implements Serializable {
         REFS_DIR.mkdir();
         STAGING_DIR.mkdir();
     }
-    static String latestCommit(Repository repo) {
-        return repo.latestCommit;
-    }
     private static void setHeadToThis(String branch) {
         Path thisBranch = join(REFS_DIR, branch).toPath();
         Path headFile = HEAD.toPath();
@@ -91,26 +88,26 @@ class Repository implements Serializable {
             e.printStackTrace();
         }
     }
-    static void add(Repository repo, String file) {
+    void add(String file) {
         if (plainFilenamesIn(CWD).contains(file)) {
-            Commit c = getLatestCommit(repo);
+            Commit c = getLatestCommit();
             /** If file has been staged already but has been changed
              * back to the version tracked by the current commit,
              * remove it from the staging area.
              */
-            if (plainFilenamesIn(STAGING_DIR).contains(file) && Commit.containsFileName(c, file)) {
+            if (plainFilenamesIn(STAGING_DIR).contains(file) && c.containsFileName(file)) {
                 join(STAGING_DIR, file).delete();
                 return;
             }
             /* If file is tracked and unchanged, do nothing. */
-            if (!checkForChanges(repo)) {
+            if (c.containsExactFile(join(CWD, file))) {
                 return;
             }
             try {
                 Path from = join(CWD, file).toPath(), to = join(STAGING_DIR, file).toPath();
                 Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
-                if (repo.rmStage.remove(file)) {
-                    Repository.updateBranch(repo);
+                if (rmStage.remove(file)) {
+                    updateBranch();
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -119,32 +116,22 @@ class Repository implements Serializable {
         }
         System.out.println("File does not exist.");
     }
-    static void commit(Repository repo, String msg) {
+    void commit(String msg) {
         if (plainFilenamesIn(STAGING_DIR).size() == 0) {
             System.out.println("No changes added to the commit.");
             return;
         }
-        repo.latestCommit = Commit.makeCommitment(repo, msg);
-        repo.rmStage = new ArrayList<>();
-        updateBranch(repo);
+        latestCommit = Commit.makeCommitment(this, msg);
+        rmStage = new ArrayList<>();
+        updateBranch();
     }
-    static boolean checkForChanges(Repository repo) {
-        Commit c = getLatestCommit(repo);
-        for (String file : plainFilenamesIn(CWD)) {
-            if (!Commit.containsFileName(c, file)) {
-                return true;
-            }
-        }
-        return plainFilenamesIn(STAGING_DIR).size() == 0
-                && repo.rmStage.size() == 0;
+    void updateBranch() {
+        File branch = join(REFS_DIR, this.branch);
+        writeObject(branch, this);
+        writeObject(HEAD, this);
     }
-    static void updateBranch(Repository repo) {
-        File branch = join(REFS_DIR, repo.branch);
-        writeObject(branch, repo);
-        writeObject(HEAD, repo);
-    }
-    static void rm(Repository repo, String file) {
-        Boolean check = rmCommit(repo, file);
+    void rm(String file) {
+        Boolean check = rmCommit(file);
         if (!(rmStaging(file) || check)) {
             System.out.println("No reason to remove the file.");
         }
@@ -156,11 +143,11 @@ class Repository implements Serializable {
         }
         return false;
     }
-    private static Boolean rmCommit(Repository repo, String fileName) {
-        Commit commit = Repository.getLatestCommit(repo);
-        if (Commit.containsFileName(commit, fileName)) {
-            repo.rmStage.add(fileName);
-            updateBranch(repo);
+    private Boolean rmCommit(String fileName) {
+        Commit c = getLatestCommit();
+        if (c.containsFileName(fileName)) {
+            rmStage.add(fileName);
+            updateBranch();
             File file = join(CWD, fileName);
             if (file.exists()) {
                 restrictedDelete(file);
@@ -169,9 +156,8 @@ class Repository implements Serializable {
         }
         return false;
     }
-    static void log(Repository repo) {
-        Commit commit = Repository.getLatestCommit(repo);
-        Commit.log(commit);
+    void log() {
+        getLatestCommit().log();
     }
     static void globalLog() {
         for (String c1 : HEXADECIMAL_CHARS) {
@@ -199,8 +185,8 @@ class Repository implements Serializable {
                         if (Commit.isCommit(file)) {
                             File f = join(dir, file);
                             Commit c = readObject(f, Commit.class);
-                            if (Commit.message(c).equals(msg)) {
-                                System.out.println(Commit.sha(c));
+                            if (c.message().equals(msg)) {
+                                System.out.println(c.sha());
                                 found = true;
                             }
                         }
@@ -212,15 +198,15 @@ class Repository implements Serializable {
             System.out.println("Found no commit with that message.");
         }
     }
-    static void status(Repository repo) {
-        statusBranches(repo.branch);
+    void status() {
+        statusBranches();
         statusStagedFiles();
-        statusRemovedFiles(repo);
-        statusNotStaged(repo);
-        statusUntracked(repo);
+        statusRemovedFiles();
+        statusNotStaged();
+        statusUntracked();
         System.out.println();
     }
-    private static void statusBranches(String branch) {
+    private void statusBranches() {
         System.out.println("=== Branches ===");
         for (String b : plainFilenamesIn(REFS_DIR)) {
             if (b.equals(branch)) {
@@ -229,7 +215,7 @@ class Repository implements Serializable {
             System.out.println(b);
         }
     }
-    private static void statusStagedFiles() {
+    private void statusStagedFiles() {
         System.out.println("\n=== Staged Files ===");
         List<String> stagedFiles = plainFilenamesIn(STAGING_DIR);
         if (stagedFiles != null) {
@@ -238,20 +224,20 @@ class Repository implements Serializable {
             }
         }
     }
-    private static void statusRemovedFiles(Repository repo) {
+    private void statusRemovedFiles() {
         System.out.println("\n=== Removed Files ===");
-        for (String file : repo.rmStage) {
+        for (String file : rmStage) {
             System.out.println(file);
         }
     }
-    private static void statusNotStaged(Repository repo) {
+    private void statusNotStaged() {
         System.out.println("\n=== Modifications Not Staged For Commit ===");
-        Commit commit = Repository.getLatestCommit(repo);
+        Commit c = getLatestCommit();
         for (String fileString : plainFilenamesIn(CWD)) {
             File cwdFile = join(CWD, fileString);
             File stagingFile = join(STAGING_DIR, fileString);
-            if (Commit.containsFileName(commit, fileString)
-                    && !Commit.containsExactFile(commit, cwdFile)
+            if (c.containsFileName(fileString)
+                    && !c.containsExactFile(cwdFile)
                     && !stagingFile.exists()) {
                 System.out.println(fileString + " (modified)");
             } else if (stagingFile.exists()
@@ -261,38 +247,37 @@ class Repository implements Serializable {
         }
         for (String fileString : plainFilenamesIn(STAGING_DIR)) {
             File cwdFile = join(CWD, fileString);
-            File stagingFile = join(STAGING_DIR, fileString);
             if (!cwdFile.exists()) {
                 System.out.println(fileString + " (deleted)");
             }
         }
-        for (String fileString : Commit.files(commit)) {
+        for (String fileString : c.files()) {
             fileString = fileString.substring(UID_LENGTH);
             File cwdFile = join(CWD, fileString);
             File stagingFile = join(STAGING_DIR, fileString);
-            if (!repo.rmStage.contains(fileString)
+            if (!rmStage.contains(fileString)
                     && !cwdFile.exists()
                     && !stagingFile.exists()) {
                 System.out.println(fileString + " (deleted)");
             }
         }
     }
-    private static void statusUntracked(Repository repo) {
+    private void statusUntracked() {
         System.out.println("\n=== Untracked Files ===");
-        Commit c = Repository.getLatestCommit(repo);
+        Commit c = getLatestCommit();
         for (String file : plainFilenamesIn(CWD)) {
             List<String> stagedFiles = plainFilenamesIn(STAGING_DIR);
-            if (!(Commit.containsFileName(c, file) || stagedFiles.contains(file))
-                || (repo.rmStage.contains(file))) {
+            if (!(c.containsFileName(file) || stagedFiles.contains(file))
+                || (rmStage.contains(file))) {
                 System.out.println(file);
             }
         }
     }
-    static void checkout(Repository repo, String[] args) {
+    void checkout(String[] args) {
         Commit c = null;
         String reqFile;
         if (args.length == 3 && args[1].equals("--")) {
-            c = Repository.getLatestCommit(repo);
+            c = getLatestCommit();
             reqFile = args[2];
             checkoutGetFile(c, reqFile);
         } else if (args.length == 4 && args[2].equals("--")) {
@@ -318,9 +303,9 @@ class Repository implements Serializable {
 
         }
     }
-    private static void checkoutGetFile(Commit c, String reqFile) {
-        if (Commit.containsFileName(c, reqFile)) {
-            String fullFileName = Commit.getFile(c, reqFile);
+    private void checkoutGetFile(Commit c, String reqFile) {
+        if (c.containsFileName(reqFile)) {
+            String fullFileName = c.getFile(reqFile);
             String dirName = fullFileName.substring(0, 2);
             String fileName = fullFileName.substring(2);
             File dir = join(OBJECTS_DIR, dirName);
@@ -335,7 +320,7 @@ class Repository implements Serializable {
             System.out.println("File does not exist in that commit.");
         }
     }
-    static void branch(Repository repo, String name) {
+    void branch(String name) {
         for (String file : plainFilenamesIn(REFS_DIR)) {
             if (file.equals(name)) {
                 System.out.println("A branch with that name already exists.");
@@ -343,10 +328,10 @@ class Repository implements Serializable {
             }
         }
         File branchFile = join(REFS_DIR, name);
-        writeObject(branchFile, repo);
+        writeObject(branchFile, this);
     }
-    static void rmBranch(Repository repo, String name) {
-        if (name.equals(repo.branch)) {
+    void rmBranch(String name) {
+        if (name.equals(branch)) {
             System.out.println("Cannot remove the current branch.");
         } else if (!join(REFS_DIR, name).delete()) {
             System.out.println("A branch with that name does not exist.");

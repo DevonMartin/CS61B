@@ -50,20 +50,20 @@ class Commit implements Serializable {
         File file = new File(fileDirectory + "/" + sha.substring(2));
         return readObject(file, Commit.class);
     }
-    static String sha(Commit c) {
-        return c.sha;
+    String sha() {
+        return sha;
     }
-    static String message(Commit c) {
-        return c.message;
+    String message() {
+        return message;
     }
-    static ArrayList<String> files(Commit c) {
-        return c.files;
+    ArrayList<String> files() {
+        return files;
     }
     static Boolean isCommit(String fileName) {
         return fileName.length() == COMMIT_NAME_LENGTH;
     }
-    static Boolean containsFileName(Commit commit, String file) {
-        for (String trackedFile : commit.files) {
+    Boolean containsFileName(String file) {
+        for (String trackedFile : files) {
             trackedFile = trackedFile.substring(UID_LENGTH);
             if (trackedFile.equals(file)) {
                 return true;
@@ -71,12 +71,16 @@ class Commit implements Serializable {
         }
         return false;
     }
-    static Boolean containsExactFile(Commit commit, File file) {
+
+    /** Takes in a file from the CWD and returns true if
+     * the Commit has the same version of the file stored.
+     */
+    Boolean containsExactFile(File file) {
         String fileName = sha1File(file) + file.getName();
-        return commit.files.contains(fileName);
+        return files.contains(fileName);
     }
-    public static String getFile(Commit c, String reqFile) {
-        for (String fileName : c.files) {
+    public String getFile(String reqFile) {
+        for (String fileName : files) {
             if (fileName.substring(UID_LENGTH).equals(reqFile)) {
                 return fileName;
             }
@@ -90,7 +94,7 @@ class Commit implements Serializable {
     static String firstCommit() {
         Commit c = new Commit("initial commit", new Date(0), null, null);
         c.saveCommitment();
-        return Commit.sha(c);
+        return c.sha();
     }
     public void saveCommitment() {
         byte[] b = serialize(this);
@@ -106,38 +110,38 @@ class Commit implements Serializable {
      * @return     The sha of the commitment for storage in the repo.
      */
     static String makeCommitment(Repository repo, String msg) {
-        Commit parent = Repository.getLatestCommit(repo);
+        Commit parent = repo.getLatestCommit();
         Commit child = getCommit(msg, parent.sha);
         /* Children start with the same files as their parents. */
         child.files = (ArrayList<String>) parent.files.clone();
         for (String file : plainFilenamesIn(Repository.STAGING_DIR)) {
             /** Remove the previous version of a file
              * that has been updated and staged. */
-            if (Commit.containsFileName(child, file)) {
-                Commit.removeFileFromCommit(child, file);
+            if (child.containsFileName(file)) {
+                child.removeFileFromCommit(file);
             }
             /* Add the file to the new commit. */
-            addFileToCommit(file, child);
+            child.addFileToCommit(file);
         }
         /* Remove files from commit that have been staged for removal. */
         for (String file : repo.rmStage) {
-            Commit.removeFileFromCommit(child, file);
+            child.removeFileFromCommit(file);
         }
         /* Removes files from commit that are removed but not staged for removal. */
-        for (String fileString : files(parent)) {
+        for (String fileString : parent.files()) {
             String fileSubstring = fileString.substring(UID_LENGTH);
             if (!join(Repository.CWD, fileSubstring).exists()) {
-                files(child).remove(fileString);
+                child.files().remove(fileString);
             }
         }
         child.saveCommitment();
         return child.sha;
     }
-    private static void addFileToCommit(String fileString, Commit commit) {
+    private void addFileToCommit(String fileString) {
         File file = join(Repository.STAGING_DIR, fileString);
         String sha = sha1File(file);
         String fullFileName = sha + fileString;
-        commit.files.add(fullFileName);
+        files.add(fullFileName);
         saveFileForCommit(file.toPath(), fullFileName);
     }
     /* Move a file from the staging directory into it's sha-directory. */
@@ -151,10 +155,10 @@ class Commit implements Serializable {
         }
     }
     /* Remove a file from a commit if it exists, else return. */
-    private static void removeFileFromCommit(Commit commit, String fileToRemove) {
-        for (String file : commit.files) {
+    private void removeFileFromCommit(String fileToRemove) {
+        for (String file : files) {
             if (file.substring(UID_LENGTH).equals(fileToRemove)) {
-                commit.files.remove(file);
+                files.remove(file);
                 return;
             }
         }
@@ -171,11 +175,10 @@ class Commit implements Serializable {
         return str.toString();
     }
 
-    static void log(Commit commit) {
-        System.out.println(commit);
-        String p1 = commit.parent1;
-        if (p1 != null) {
-            Commit.log(getCommitFromSha(p1));
+    void log() {
+        System.out.println(this);
+        if (parent1 != null) {
+            getCommitFromSha(parent1).log();
         }
     }
 

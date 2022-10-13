@@ -47,22 +47,22 @@ public class Main {
             switch (firstArg) {
                 case "add":
                     if (paramLenIsCorrect(args, 2)) {
-                        Repository.add(repo, args[1]);
+                        repo.add(args[1]);
                     }
                     break;
                 case "commit":
                     if (paramLenIsCorrect(args, 2)) {
-                        Repository.commit(repo, args[1]);
+                        repo.commit(args[1]);
                     }
                     break;
                 case "rm":
                     if (paramLenIsCorrect(args, 2)) {
-                        Repository.rm(repo, args[1]);
+                        repo.rm(args[1]);
                     }
                     break;
                 case "log":
                     if (paramLenIsCorrect(args, 1)) {
-                        Repository.log(repo);
+                        repo.log();
                     }
                     break;
                 case "global-log":
@@ -77,20 +77,20 @@ public class Main {
                     break;
                 case "status":
                     if (paramLenIsCorrect(args, 1)) {
-                        Repository.status(repo);
+                        repo.status();
                     }
                     break;
                 case "checkout":
-                    Repository.checkout(repo, args);
+                    repo.checkout(args);
                     break;
                 case "branch":
                     if (paramLenIsCorrect(args, 2)) {
-                        Repository.branch(repo, args[1]);
+                        repo.branch(args[1]);
                     }
                     break;
                 case "rm-branch":
                     if (paramLenIsCorrect(args, 2)) {
-                        Repository.rmBranch(repo, args[1]);
+                        repo.rmBranch(args[1]);
                     }
                     break;
                 case "reset":
