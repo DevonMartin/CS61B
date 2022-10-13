@@ -1,12 +1,13 @@
 package gitlet;
 
 /** Driver class for Gitlet, a subset of the Git version-control system.
- *  @author Devon Martin
+ *
+ * @author Devon Martin
  */
 public class Main {
     /** Helper function to ensure that the number of arguments
-     *  is correct for each command. Errors and exits program
-     *  if not.
+     * is correct for each command. Errors and exits program
+     * if not.
      * @param args The arguments array passed into main
      * @param n    The number of required arguments
      */
@@ -18,7 +19,7 @@ public class Main {
     }
 
     /** Usage: java gitlet.Main ARGS, where ARGS contains
-     *  <COMMAND> <OPERAND1> <OPERAND2> ... 
+     * <COMMAND> <OPERAND1> <OPERAND2> ...
      */
     public static void main(String[] args) {
 

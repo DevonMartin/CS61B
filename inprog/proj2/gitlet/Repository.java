@@ -12,41 +12,68 @@ import java.util.List;
 import static gitlet.Utils.*;
 
 /** Represents a gitlet repository.
- *  TODO: It's a good idea to give a description here of what else this Class
- *  does at a high level.
+ * This class works hand-in-hand with the Commit class,
+ * and together they provide a version control system
+ * for Gitlet's users. Repository implements the
+ * directories used by the program, and maintains a
+ * record of the last commitment made on the Repository.
+ * Each Repository is a branch which can have its own
+ * path of version control, and each branch that isn't
+ * the first (master) "branches" off of another branch.
+ * Repository also allows for backing up previously
+ * saved versions of files.
  *
- *  @author Devon Martin
+ * @author Devon Martin
  */
 class Repository implements Serializable {
 
-    /** The current working directory. */
+    /** The Current Working Directory of the user.
+     */
     static final File CWD = new File(System.getProperty("user.dir"));
-    /** The .gitlet directory. */
+    /** The .gitlet directory of a repository.
+     */
     private static final File GITLET_DIR = join(CWD, ".gitlet");
-    /** The directories within .gitlet. */
+    /** The branch a user is currently working in.
+     */
     private static final File HEAD = join(GITLET_DIR, "HEAD");
+    /** The directory storing directories for file
+     * and commit storage within the .gitlet directory.
+     */
     static final File OBJECTS_DIR = join(GITLET_DIR, "objects");
+    /** The directory storing all branches of a
+     * repository.
+     */
     private static final File REFS_DIR = join(GITLET_DIR, "refs");
+    /** The directory temporarily storing files while
+     * they are staged for addition in the next commit.
+     */
     static final File STAGING_DIR = join(GITLET_DIR, "staging");
-    /** The possible characters in a hexadecimal string. */
+    /** The possible characters in a hexadecimal string, for creating
+     * directories for storing files saved by an encrypted name.
+     */
     private static final String[] HEXADECIMAL_CHARS = { "0", "1", "2", "3", "4", "5", "6", "7",
                                                         "8", "9", "a", "b", "c", "d", "e", "f" };
-    /** The branch this repo belongs to. */
+    /** The branch this repo belongs to.
+     */
     private String branch = "master";
-    /** The linked list of commits, starting with the oldest. */
+    /** The last commit made on this repository, stored by
+     * its full unique ID.
+     */
     private String latestCommit;
-    /** Return the latest Commit of a repository. */
+    /** Return the latest Commit of a repository.
+     */
     Commit getLatestCommit() {
-        return Commit.getCommitFromSha(latestCommit);
+        return Commit.getCommitFromString(latestCommit);
     }
-    /** The files staged for removal. */
+    /** The files staged for removal.
+     */
     ArrayList<String> rmStage = new ArrayList<>();
 
     /** Initializes a new repository and calls helper functions to:
-     *  -create .gitlet and related directories
-     *  -create and save an initial commit
-     *  -create an initial branch, saving this repo as "master"
-     *  -set the current HEAD to this repo
+     * -create .gitlet and related directories
+     * -create and save an initial commit
+     * -create an initial branch, saving this repo as "master"
+     * -set the current HEAD to this repo
      */
     Repository() {
         if (inRepo()) {
@@ -59,16 +86,19 @@ class Repository implements Serializable {
         branch(branch);
         setHeadToThis(this.branch);
     }
-    /** Return true if the CWD contains a .gitlet/ dir. */
+    /** Returns true if the CWD contains a .gitlet/ dir.
+     */
     static boolean inRepo() {
         Path path = GITLET_DIR.toPath();
         return Files.exists(path);
     }
-    /** Returns the Repository stored by HEAD file. */
+    /** Returns the Repository stored by HEAD file.
+     */
     static Repository loadHead() {
         return readObject(HEAD, Repository.class);
     }
-    /** Creates .gitlet/ dir and all dirs within. */
+    /** Creates .gitlet/ dir and all dirs within.
+     */
     private static void createDirectories() {
         OBJECTS_DIR.mkdirs();
         for (String c1 : HEXADECIMAL_CHARS) {
@@ -79,7 +109,8 @@ class Repository implements Serializable {
         REFS_DIR.mkdir();
         STAGING_DIR.mkdir();
     }
-    /** Change what branch the HEAD points at and the user is in. */
+    /** Change what branch the HEAD points at and the user is in.
+     */
     private static void setHeadToThis(String branch) {
         Path thisBranch = join(REFS_DIR, branch).toPath();
         Path headFile = HEAD.toPath();
@@ -91,11 +122,11 @@ class Repository implements Serializable {
     }
 
     /** Add a file to staging if it varies from the currently staged version
-     *  and the currently tracked version. If a version is already staged,
-     *  but the file matches the currently tracked version, remove it from
-     *  staging. If the file is added, and was staged for removal, remove it
-     *  from the removal staging.
-     * @param file  The file name in the CWD to add.
+     * and the currently tracked version. If a version is already staged,
+     * but the file matches the currently tracked version, remove it from
+     * staging. If the file is added, and was staged for removal, remove it
+     * from the removal staging.
+     * @param file  The file name in the CWD to add. Use File.getName() for files.
      */
     void add(String file) {
         if (plainFilenamesIn(CWD).contains(file)) {
@@ -119,8 +150,8 @@ class Repository implements Serializable {
     }
 
     /** Create a new commitment if the staging dir or the
-     *  rmStage contains files and the message is not blank.
-     *  Clears staging dir and rmStage if successful.
+     * rmStage contains files and the message is not blank.
+     * Clears staging dir and rmStage if successful.
      */
     void commit(String msg) {
         if (plainFilenamesIn(STAGING_DIR).size() == 0
@@ -135,8 +166,8 @@ class Repository implements Serializable {
         }
     }
 
-    /** Save the current state of a repository in its
-     *  branch file and update HEAD to reflect this.
+    /** Saves the current state of a repository in its
+     * branch file and updates HEAD to reflect this.
      */
     void updateBranch() {
         File branchFile = join(REFS_DIR, this.branch);
@@ -145,7 +176,7 @@ class Repository implements Serializable {
     }
 
     /** Remove a file from staging if it is staged and from the
-     *  CWD if it is already tracked by the previous commit.
+     * CWD if it is already tracked by the previous commit.
      */
     void rm(String file) {
         boolean check1 = rmCommit(file);
@@ -156,7 +187,7 @@ class Repository implements Serializable {
     }
 
     /** Helper function for rm that handles removing
-     *  a file from a commitment.
+     * a file from a commitment.
      */
     private Boolean rmCommit(String fileName) {
         Commit c = getLatestCommit();
@@ -170,14 +201,14 @@ class Repository implements Serializable {
     }
 
     /** Prints the log of all commitments of the current HEAD,
-     *  following the path of only parent1 of each commitment.
+     * following the path of only parent1 of each commitment.
      */
     void log() {
         getLatestCommit().log();
     }
 
     /** Prints the log of all commitments stored in .gitlet, in
-     *  alphabetical order.
+     * alphabetical order.
      */
     static void globalLog() {
         for (String c1 : HEXADECIMAL_CHARS) {
@@ -187,7 +218,7 @@ class Repository implements Serializable {
                 if (files != null) {
                     for (String file : files) {
                         if (Commit.isCommit(file)) {
-                            System.out.println(Commit.getCommitFromSha(c1 + c2 + file));
+                            System.out.println(Commit.getCommitFromString(c1 + c2 + file));
                         }
                     }
                 }
@@ -195,7 +226,7 @@ class Repository implements Serializable {
         }
     }
 
-    /** Print the sha1 ID of any commitment which has a message
+    /** Print the unique ID of any commit which has a message
      * exactly matching the message provided by the user.
      */
     static void find(String msg) {
@@ -209,8 +240,8 @@ class Repository implements Serializable {
                         if (Commit.isCommit(file)) {
                             File f = join(dir, file);
                             Commit c = readObject(f, Commit.class);
-                            if (c.message().equals(msg)) {
-                                System.out.println(c.sha());
+                            if (c.getMessage().equals(msg)) {
+                                System.out.println(c.getID());
                                 found = true;
                             }
                         }
@@ -282,7 +313,7 @@ class Repository implements Serializable {
                     && !stagingFile.exists()) {
                 System.out.println(fileString + " (modified)");
             } else if (stagingFile.exists()
-                    && !Commit.sha1File(cwdFile).equals(Commit.sha1File(stagingFile))) {
+                    && !Commit.getFileID(cwdFile).equals(Commit.getFileID(stagingFile))) {
                 System.out.println(fileString + " (modified)");
             }
         }
@@ -292,8 +323,7 @@ class Repository implements Serializable {
                 System.out.println(fileString + " (deleted)");
             }
         }
-        for (String fileString : c.files()) {
-            fileString = fileString.substring(UID_LENGTH);
+        for (String fileString : c.getCommittedFiles()) {
             File cwdFile = join(CWD, fileString);
             File stagingFile = join(STAGING_DIR, fileString);
             if (!rmStage.contains(fileString)
@@ -317,36 +347,27 @@ class Repository implements Serializable {
             }
         }
     }
-    void checkout(String[] args) {
-        Commit c = null;
-        String reqFile;
-        if (args.length == 3 && args[1].equals("--")) {
-            c = getLatestCommit();
-            reqFile = args[2];
-            checkoutGetFile(c, reqFile);
-        } else if (args.length == 4 && args[2].equals("--")) {
-            reqFile = args[3];
-            String dirString = args[1].substring(0, 2);
-            File dir = join(OBJECTS_DIR, dirString);
-            String commitStr = args[1].substring(2);
-            boolean found = false;
-            for (String file : plainFilenamesIn(dir)) {
-                String fileSubstring = file.substring(0, commitStr.length());
-                if (Commit.isCommit(file) && fileSubstring.equals(commitStr)) {
-                    c = Commit.getCommitFromSha(dirString + file);
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                System.out.println("No commit with that id exists.");
-            } else {
-                checkoutGetFile(c, reqFile);
-            }
-        } else if (args.length == 2) {
 
+    /** Driver function for checkout which parses the arguments passed
+     * to it and calls the appropriate checkout function.
+     * -if() is checking out a file from the HEAD repo.
+     * -else if() is checking out a file from a specified commit.
+     * -else() is checking out an entire branch.
+     */
+    void checkout(String[] args) {
+        if (args.length == 3 && args[1].equals("--")) {
+            checkoutGetFile(getLatestCommit(), args[2]);
+        } else if (args.length == 4 && args[2].equals("--")) {
+            Commit c = Commit.getCommitFromString(args[1]);
+            checkoutGetFile(c, args[3]);
+        } else if (args.length == 2) {
+            System.out.println("TODO");
         }
     }
+
+    /** Helper function for checkout which copies a previously committed
+     * file into the CWD.
+     */
     private void checkoutGetFile(Commit c, String reqFile) {
         if (c.containsFileName(reqFile)) {
             String fullFileName = c.getFile(reqFile);
@@ -364,6 +385,11 @@ class Repository implements Serializable {
             System.out.println("File does not exist in that commit.");
         }
     }
+
+    /** Creates a branch, which is a pointer to the current repository,
+     * with the provided name, if one with such name does not currently
+     * exist.
+     */
     void branch(String name) {
         for (String file : plainFilenamesIn(REFS_DIR)) {
             if (file.equals(name)) {
@@ -374,6 +400,11 @@ class Repository implements Serializable {
         File branchFile = join(REFS_DIR, name);
         writeObject(branchFile, this);
     }
+
+    /** Remove a branch from Gitlet's memory, if the requested branch is not
+     * the current branch, while maintaining a record of the commits that branch
+     * had.
+     */
     void rmBranch(String name) {
         if (name.equals(branch)) {
             System.out.println("Cannot remove the current branch.");
