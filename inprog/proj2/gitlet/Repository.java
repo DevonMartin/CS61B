@@ -1,8 +1,6 @@
 package gitlet;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.Serializable;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -33,9 +31,12 @@ class Repository implements Serializable {
     /** The .gitlet directory of a repository.
      */
     private static final File GITLET_DIR = join(CWD, ".gitlet");
-    /** The branch a user is currently working in.
+    /** The reference to the branch a user is currently working in.
      */
     private static final File HEAD = join(GITLET_DIR, "HEAD");
+    /** The global log file.
+     */
+    private static final File GLOBAL_LOG_FILE = join(GITLET_DIR, "global log");
     /** The directory storing directories for file
      * and commit storage within the .gitlet directory.
      */
@@ -83,6 +84,7 @@ class Repository implements Serializable {
         }
         createDirectories();
         latestCommit = Commit.firstCommit();
+        initializeGlobalLog();
         branch(currentBranch);
         setHeadTo(currentBranch);
     }
@@ -94,7 +96,8 @@ class Repository implements Serializable {
     /** Returns the Repository stored by HEAD file.
      */
     static Repository loadHead() {
-        return readObject(HEAD, Repository.class);
+        String branch = readContentsAsString(HEAD);
+        return readObject(join(REFS_DIR, branch), Repository.class);
     }
     /** Creates .gitlet/ dir and all dirs within.
      */
@@ -105,16 +108,32 @@ class Repository implements Serializable {
                 join(OBJECTS_DIR, c1 + c2).mkdir();
             }
         }
+        try {
+            GLOBAL_LOG_FILE.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         REFS_DIR.mkdir();
         STAGING_DIR.mkdir();
+    }
+    private void initializeGlobalLog() {
+        updateGlobalLog();
+        try {
+            String previousLog = readContentsAsString(GLOBAL_LOG_FILE);
+            FileWriter writer = new FileWriter(GLOBAL_LOG_FILE, false);
+            writer.write(previousLog.substring(0, previousLog.length() - 1));
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
     /** Change what branch the HEAD points at and the user is in.
      */
     private static void setHeadTo(String branch) {
-        Path thisBranch = join(REFS_DIR, branch).toPath();
-        Path headFile = HEAD.toPath();
         try {
-            Files.copy(thisBranch, headFile, StandardCopyOption.REPLACE_EXISTING);
+            FileWriter writer = new FileWriter(HEAD, false);
+            writer.write(branch);
+            writer.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -130,6 +149,12 @@ class Repository implements Serializable {
     void add(String file) {
         List<String> filesInCWD = plainFilenamesIn(CWD);
         if (filesInCWD != null) {
+            if (file.equals(".")) {
+                for (String fileInCWD : filesInCWD) {
+                    add(fileInCWD);
+                }
+                return;
+            }
             if (filesInCWD.contains(file)) {
                 if (rmStage.remove(file)) {
                     updateBranch();
@@ -168,19 +193,31 @@ class Repository implements Serializable {
                 latestCommit = Commit.makeCommitment(msg);
                 rmStage = new ArrayList<>();
                 updateBranch();
+                updateGlobalLog();
             }
         }
     }
-
     /** Saves the current state of a repository in its
      * branch file and updates HEAD to reflect this.
      */
-    void updateBranch() {
+    private void updateBranch() {
         File branchFile = join(REFS_DIR, currentBranch);
         writeObject(branchFile, this);
-        writeObject(HEAD, this);
     }
 
+    /** Add the latest commit's .toString() to the GLOBAL_LOG_FILE;
+     */
+    private void updateGlobalLog() {
+        try {
+            StringBuilder updatedLog = new StringBuilder(getLatestCommit().toString())
+                    .append("\n").append(readContentsAsString(GLOBAL_LOG_FILE));
+            FileWriter writer = new FileWriter(GLOBAL_LOG_FILE, false);
+            writer.write(updatedLog.toString());
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
     /** Remove a file from staging if it is staged and from the
      * CWD if it is already tracked by the previous commit.
      */
@@ -210,9 +247,7 @@ class Repository implements Serializable {
      * alphabetical order.
      */
     static void globalLog() {
-        for (Commit c : Commit.getAllCommits()) {
-            System.out.println(c);
-        }
+        System.out.println(readContentsAsString(GLOBAL_LOG_FILE));
     }
 
     /** Print the unique ID of any commit which has a message
