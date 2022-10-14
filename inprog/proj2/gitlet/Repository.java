@@ -392,14 +392,14 @@ class Repository implements Serializable {
         List<String> filesInCWD = plainFilenamesIn(CWD);
         List<String> stagedFiles = plainFilenamesIn(STAGING_DIR);
         for (String file : filesInCWD) {
-            restrictedDelete(join(CWD, file));
+            join(CWD, file).delete();
         }
         for (String file : newCommit.getCommittedFiles()) {
             checkoutGetFile(newCommit, file);
         }
         if (stagedFiles.size() != 0) {
             for (String file : stagedFiles) {
-                restrictedDelete(join(STAGING_DIR, file));
+                join(STAGING_DIR, file).delete();
             }
         }
     }
