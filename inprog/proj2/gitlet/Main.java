@@ -18,6 +18,8 @@ public class Main {
         }
     }
 
+    static Repository repo = null;
+
     /** Usage: java gitlet.Main ARGS, where ARGS contains
      * <COMMAND> <OPERAND1> <OPERAND2> ...
      */
@@ -34,7 +36,7 @@ public class Main {
         } else if (!Repository.inRepo()) {
             System.out.println("Not in an initialized Gitlet directory.");
         } else {
-            Repository repo = Repository.loadHead();
+            repo = Repository.loadHead();
             switch (firstArg) {
                 case "add":
                     paramLenCheck(args, 2);

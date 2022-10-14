@@ -120,9 +120,8 @@ class Commit implements Serializable {
      * the same name as the fileName provided.
      */
     Boolean containsFileName(String fileName) {
-        for (String trackedFile : files) {
-            trackedFile = trackedFile.substring(UID_LENGTH);
-            if (trackedFile.equals(fileName)) {
+        for (String file : getCommittedFiles()) {
+            if (file.equals(fileName)) {
                 return true;
             }
         }
@@ -138,13 +137,13 @@ class Commit implements Serializable {
 
     /** Returns the full-length name of a file stored by a commit.
      */
-    String getFile(String reqFile) {
-        for (String fileName : files) {
-            if (fileName.substring(UID_LENGTH).equals(reqFile)) {
-                return fileName;
+    String getFullFileName(String fileName) {
+        for (String fullFileName : files) {
+            if (fullFileName.substring(UID_LENGTH).equals(fileName)) {
+                return fullFileName;
             }
         }
-        return "";
+        return null;
     }
 
     /** Searches for and returns a Commit by a full or partial name.
@@ -154,7 +153,7 @@ class Commit implements Serializable {
             String dirString = commit.substring(0, 2);
             File dir = join(Repository.OBJECTS_DIR, dirString);
             List<String> dirFiles = plainFilenamesIn(dir);
-            if (dirFiles.size() != 0) {
+            if (dirFiles != null) {
                 String commitStr = commit.substring(2);
                 for (String file : plainFilenamesIn(dir)) {
                     String fileSubstring = file.substring(0, commitStr.length());
@@ -192,12 +191,11 @@ class Commit implements Serializable {
         writeObject(file, this);
     }
     /** Creates a new commit.
-     * @param repo The repository gaining a new commitment.
      * @param msg  The message the commitment will store.
      * @return     The ID of the commitment for storage in the repo.
      */
-    static String makeCommitment(Repository repo, String msg) {
-        Commit parent = repo.getLatestCommit();
+    static String makeCommitment(String msg) {
+        Commit parent = Main.repo.getLatestCommit();
         Commit child = getCommit(msg, parent.sha);
         /* Children start with the same files as their parents.
          */
@@ -215,7 +213,7 @@ class Commit implements Serializable {
         }
         /* Remove files from commit that have been staged for removal.
          */
-        for (String file : repo.rmStage) {
+        for (String file : Main.repo.rmStage) {
             child.removeFileFromCommit(file);
         }
         child.saveCommitment();
@@ -226,8 +224,7 @@ class Commit implements Serializable {
      */
     private void addFileToCommit(String fileString) {
         File file = join(Repository.STAGING_DIR, fileString);
-        String fileSha = getFileID(file);
-        String fullFileName = fileSha + fileString;
+        String fullFileName = getFileID(file) + fileString;
         files.add(fullFileName);
         saveFileForCommit(file.toPath(), fullFileName);
     }
@@ -261,7 +258,7 @@ class Commit implements Serializable {
      */
     @Override
     public String toString() {
-        StringBuilder str = new StringBuilder("===\ncommit " + sha + "\n");
+        StringBuilder str = new StringBuilder("===\ncommit ").append(sha).append("\n");
         if (parent2 != null) {
             str.append("Merge: ").append(parent1, 0, 7).append(" ");
             str.append(parent2, 0, 7).append("\n");
@@ -279,5 +276,26 @@ class Commit implements Serializable {
         if (parent1 != null) {
             getCommitFromString(parent1).log();
         }
+    }
+
+    /** Finds and returns every commit in the objects directory
+     * as Commits.
+     */
+    static List<Commit> getAllCommits() {
+        List<Commit> returnFiles = new ArrayList<>();
+        for (String c1 : Repository.HEXADECIMAL_CHARS) {
+            for (String c2 : Repository.HEXADECIMAL_CHARS) {
+                File dir = join(Repository.OBJECTS_DIR, c1 + c2);
+                List<String> files = plainFilenamesIn(dir);
+                if (files != null) {
+                    for (String file : files) {
+                        if (Commit.isCommit(file)) {
+                            returnFiles.add(getCommitFromString(c1 + c2 + file));
+                        }
+                    }
+                }
+            }
+        }
+        return returnFiles;
     }
 }
