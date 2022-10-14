@@ -355,7 +355,8 @@ class Repository implements Serializable {
      * to it and calls the appropriate checkout function.
      * -if() is checking out a file from the HEAD repo.
      * -else if() is checking out a file from a specified commit.
-     * -else() is checking out an entire branch.
+     * -else() is switching branches and then switching files in the
+     * CWD to the new HEAD.
      */
     void checkout(String[] args) {
         if (args.length == 3 && args[1].equals("--")) {
@@ -365,9 +366,43 @@ class Repository implements Serializable {
             checkoutGetFile(c, args[3]);
         } else if (args.length == 2) {
             checkoutChangeBranch(args[1]);
+            checkoutCommit(loadHead().getLatestCommit());
         }
     }
-
+    /** Updates the HEAD file to represent a different branch if
+     * the requested branch exists, and it is not the current branch.
+     */
+    private void checkoutChangeBranch(String reqBranch) {
+        if (reqBranch.equals(currentBranch)) {
+            System.out.println("No need to checkout the current branch.");
+            return;
+        }
+        File branchFile = join(REFS_DIR, reqBranch);
+        if (!branchFile.exists()) {
+            System.out.println("No such branch exists.");
+            return;
+        }
+        untrackedFileCheck();
+        setHeadToThis(reqBranch);
+    }
+    /** Changes files in the CWD to that of another commit. Must be
+     * used AFTER checking for untracked files in the way.
+     */
+    private void checkoutCommit(Commit newCommit) {
+        List<String> filesInCWD = plainFilenamesIn(CWD);
+        List<String> stagedFiles = plainFilenamesIn(STAGING_DIR);
+        for (String file : filesInCWD) {
+            restrictedDelete(join(CWD, file));
+        }
+        for (String file : newCommit.getCommittedFiles()) {
+            checkoutGetFile(newCommit, file);
+        }
+        if (stagedFiles.size() != 0) {
+            for (String file : stagedFiles) {
+                restrictedDelete(join(STAGING_DIR, file));
+            }
+        }
+    }
     /** Helper function for checkout which copies a previously committed
      * file into the CWD.
      * @param reqFile the original name of a file.
@@ -389,47 +424,22 @@ class Repository implements Serializable {
             System.out.println("File does not exist in that commit.");
         }
     }
-    /** Helper function for checkout which updates the HEAD branch
-     * to the specified branch if the branch exists, the branch is
-     * not the current branch and the current branch contains no
-     * untracked files which would be overridden. The staging area
-     * is cleared.
+    /** Checks for any untracked files in the current commit.
      */
-    private void checkoutChangeBranch(String reqBranch) {
-        if (reqBranch.equals(currentBranch)) {
-            System.out.println("No need to checkout the current branch.");
-            return;
-        }
-        Commit currentLatestCommit = getLatestCommit();
-        List<String> stagedFiles = plainFilenamesIn(STAGING_DIR);
+    private void untrackedFileCheck() {
+        Commit c = getLatestCommit();
         List<String> filesInCWD = plainFilenamesIn(CWD);
-        for (String file : filesInCWD) {
-            if (!(currentLatestCommit.containsFileName(file) || stagedFiles.contains(file))
-                    || (rmStage.contains(file))) {
-                System.out.println(
-                        "There is an untracked file in the way;"
-                                + " delete it, or add and commit it first."
-                );
-                return;
-            }
-        }
-        File branchFile = join(REFS_DIR, reqBranch);
-        if (!branchFile.exists()) {
-            System.out.println("No such branch exists.");
-            return;
-        }
-        for (String file : filesInCWD) {
-            restrictedDelete(join(CWD, file));
-        }
-        setHeadToThis(reqBranch);
-        Repository newHead = loadHead();
-        Commit newLatestCommit = newHead.getLatestCommit();
-        for (String file : newLatestCommit.getCommittedFiles()) {
-            checkoutGetFile(newLatestCommit, file);
-        }
-        if (stagedFiles.size() != 0) {
-            for (String file : stagedFiles) {
-                restrictedDelete(join(STAGING_DIR, file));
+        List<String> stagedFiles = plainFilenamesIn(STAGING_DIR);
+        if (!(filesInCWD.size() == 0)) {
+            for (String file : filesInCWD) {
+                if (!(c.containsFileName(file) || stagedFiles.contains(file))
+                        || (rmStage.contains(file))) {
+                    System.out.println(
+                            "There is an untracked file in the way;"
+                                    + " delete it, or add and commit it first."
+                    );
+                    System.exit(0);
+                }
             }
         }
     }
@@ -448,7 +458,6 @@ class Repository implements Serializable {
         currentBranch = name;
         writeObject(branchFile, this);
     }
-
     /** Remove a branch from Gitlet's memory, if the requested branch is not
      * the current branch, while maintaining a record of the commits that branch
      * had.
@@ -459,5 +468,16 @@ class Repository implements Serializable {
         } else if (!join(REFS_DIR, name).delete()) {
             System.out.println("A branch with that name does not exist.");
         }
+    }
+    /** Resets back to the state of a previous commit if there are no
+     * untracked files in the way. The branch remains the same, but
+     * the head commit reflects the change.
+     */
+    void reset(String commitString) {
+        untrackedFileCheck();
+        Commit c = Commit.getCommitFromString(commitString);
+        latestCommit = c.getID();
+        updateBranch();
+        checkoutCommit(c);
     }
 }
