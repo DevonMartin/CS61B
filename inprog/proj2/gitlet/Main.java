@@ -82,7 +82,8 @@ public class Main {
                     repo.reset(args[1]);
                     break;
                 case "merge":
-                    // TODO: handle the `merge [filename]` command
+                    paramLenCheck(args, 2);
+                    repo.merge(args[1]);
                     break;
                 default:
                     System.out.println("No command with that name exists.");

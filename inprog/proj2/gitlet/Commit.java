@@ -267,14 +267,16 @@ class Commit implements Serializable {
         return str.toString();
     }
 
-    /** Recursively logs commits, following the line of
+    /** Iteratively logs commits, following the line of
      * the first parents while ignoring the second parents
      * in cases of merging.
      */
     void log() {
         System.out.println(this);
-        if (parent1 != null) {
-            getCommitFromString(parent1).log();
+        Commit c = this;
+        while (c.parent1 != null) {
+            c = getCommitFromString(c.parent1);
+            System.out.println(c);
         }
     }
 

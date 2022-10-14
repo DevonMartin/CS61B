@@ -128,24 +128,27 @@ class Repository implements Serializable {
      * @param file  The file name in the CWD to add. Use File.getName() for files.
      */
     void add(String file) {
-        if (plainFilenamesIn(CWD).contains(file)) {
-            if (rmStage.remove(file)) {
-                updateBranch();
+        List<String> filesInCWD = plainFilenamesIn(CWD);
+        if (filesInCWD != null) {
+            if (filesInCWD.contains(file)) {
+                if (rmStage.remove(file)) {
+                    updateBranch();
+                }
+                Commit c = getLatestCommit();
+                if (c.containsExactFile(join(CWD, file))) {
+                    join(STAGING_DIR, file).delete();
+                    return;
+                }
+                Path from = join(CWD, file).toPath();
+                Path to = join(STAGING_DIR, file).toPath();
+                try {
+                    Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                System.out.println("File does not exist.");
             }
-            Commit c = getLatestCommit();
-            if (c.containsExactFile(join(CWD, file))) {
-                join(STAGING_DIR, file).delete();
-                return;
-            }
-            Path from = join(CWD, file).toPath();
-            Path to = join(STAGING_DIR, file).toPath();
-            try {
-                Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } else {
-            System.out.println("File does not exist.");
         }
     }
 
@@ -154,15 +157,18 @@ class Repository implements Serializable {
      * Clears staging dir and rmStage if successful.
      */
     void commit(String msg) {
-        if (plainFilenamesIn(STAGING_DIR).size() == 0
-            && rmStage.size() == 0) {
-            System.out.println("No changes added to the commit.");
-        } else if (msg.equals("")) {
-            System.out.println("Please enter a commit message.");
-        } else {
-            latestCommit = Commit.makeCommitment(msg);
-            rmStage = new ArrayList<>();
-            updateBranch();
+        List<String> filesInStagingDir = plainFilenamesIn(STAGING_DIR);
+        if (filesInStagingDir != null) {
+            if (filesInStagingDir.size() == 0
+                    && rmStage.size() == 0) {
+                System.out.println("No changes added to the commit.");
+            } else if (msg.equals("")) {
+                System.out.println("Please enter a commit message.");
+            } else {
+                latestCommit = Commit.makeCommitment(msg);
+                rmStage = new ArrayList<>();
+                updateBranch();
+            }
         }
     }
 
@@ -436,16 +442,11 @@ class Repository implements Serializable {
      * exist.
      */
     void branch(String name) {
-        List<String> branches = plainFilenamesIn(REFS_DIR);
-        if (branches != null) {
-            for (String file : branches) {
-                if (file.equals(name)) {
-                    System.out.println("A branch with that name already exists.");
-                    return;
-                }
-            }
-        }
         File branchFile = join(REFS_DIR, name);
+        if (branchFile.exists()) {
+            System.out.println("A branch with that name already exists.");
+            return;
+        }
         currentBranch = name;
         writeObject(branchFile, this);
     }
@@ -471,4 +472,53 @@ class Repository implements Serializable {
         updateBranch();
         checkoutCommit(c);
     }
+    /** Merges secondary branch into current branch.
+     * Cases:
+     * -Given branch's latestCommit is the original commit
+     * from the branching; given branch never changed.
+     * System.out.println("Given branch is an ancestor of the current branch.")
+     * Nothing changes.
+     * -The current branch is the original commit from the
+     * branching; current branch never changed.
+     * Fast-forward the current branch to the latest commit of
+     * the given branch.
+     * checkoutCommit(givenCommit);
+     * latestCommit = givenCommit.getID();
+     * updateBranch();
+     * System.out.println("Current branch fast-forwarded.")
+     * -
+     */
+    void merge(String givenBranch) {
+        Repository givenBranchRepo = mergeFailureCasesCheck(givenBranch);
+        Commit givenCommit = givenBranchRepo.getLatestCommit();
+    }
+    /** Helper function for merge that checks for failure cases.
+     * Returns the Repository class of the branch upon success.
+     */
+    private Repository mergeFailureCasesCheck(String branch) {
+        List<String> filesInStagingDir = plainFilenamesIn(STAGING_DIR);
+        if (filesInStagingDir == null || filesInStagingDir.size() == 0
+                || rmStage.size() == 0) {
+            System.out.println("You have uncommitted changes.");
+            System.exit(0);
+        }
+        File givenBranchFile = join(REFS_DIR, branch);
+        if (!givenBranchFile.exists()) {
+            System.out.println("A branch with that name does not exist.");
+            System.exit(0);
+        }
+        if (branch.equals(currentBranch)) {
+            System.out.println("Cannot merge a branch with itself.");
+            System.exit(0);
+        }
+        untrackedFileCheck();
+        return readObject(givenBranchFile, Repository.class);
+    }
+
+    /** Recursively checks each commit of each branch and returns their
+     * Latest Common Ancestor ID.
+     */
+//    private String mergeLCA(Commit currentCommit, Commit givenCommit) {
+//
+//    }
 }
