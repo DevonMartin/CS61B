@@ -9,6 +9,7 @@ import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 
 import static gitlet.Utils.*;
@@ -38,14 +39,18 @@ class Commit implements Serializable {
     /** The pattern used for a displaying a commits
      * time.
      */
-    String pattern = "EEE MMM dd HH:mm:ss yyyy Z";
+    private final String pattern = "EEE MMM dd HH:mm:ss yyyy Z";
     /** The formatter used for a displaying a commits
      * time.
      */
-    SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+    private final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
     /** The time a commit was made.
      */
     private final String time;
+    /** The number to input into new Date() for comparing two
+     * commits' times.
+     */
+    private final long timeForComparison;
     /** The previously most recent commit of a branch
      * when a new commit is made. In the case of a
      * merge, it is the commit of the branch that the
@@ -59,63 +64,70 @@ class Commit implements Serializable {
     /** The list of files that were recorded in a
      * commit. Initially copied over from their parent.
      */
-    private ArrayList<String> files = new ArrayList<>();
+    private HashSet<String> files = new HashSet<>();
     /** The full SHA1 ID of a commit.
      */
     private String sha;
-
     /** Initializes a new Commit with a provided message,
      * date and parents.
      */
     private Commit(String msg, Date date, String parent1, String parent2) {
         this.message = msg;
         this.time = simpleDateFormat.format(date);
+        this.timeForComparison = date.getTime();
         this.parent1 = parent1;
         this.parent2 = parent2;
     }
-
     /** Returns a commit that was not a merge.
      */
     private static Commit getCommit(String msg, String parent) {
         return new Commit(msg, new Date(), parent, null);
     }
-
     /** Returns a commit that was a merge.
      */
     private static Commit getCommit(String msg, String parent1, String parent2) {
         return new Commit(msg, new Date(), parent1, parent2);
     }
-
     /** Returns the unique ID used to store a commit.
      */
     String getID() {
         return sha;
     }
 
+    /** Returns the amount of time that has passed since The Epoch.
+     */
+    long getTime() {
+        return timeForComparison;
+    }
     /** Return the message of a commit.
      */
     String getMessage() {
         return message;
     }
-
+    String[] getParents() {
+        if (parent1 == null) {
+            return new String[] {};
+        } else if (parent2 == null) {
+            return new String[] {parent1};
+        }
+        return new String[] {parent1, parent2};
+    }
     /** Return an ArrayList of all files stored by a
      * commit by their original name.
      */
-    ArrayList<String> getCommittedFiles() {
-        ArrayList<String> returnList = new ArrayList<>();
+    HashSet<String> getCommittedFiles() {
+        HashSet<String> returnList = new HashSet<>();
         for (String file : files) {
             returnList.add(file.substring(UID_LENGTH));
         }
         return returnList;
     }
-
     /** Returns whether a fileName length matches
      * the COMMIT_NAME_LENGTH.
      */
     static Boolean isCommit(String fileName) {
         return fileName.length() == COMMIT_NAME_LENGTH;
     }
-
     /** Returns true if a commit has some file saved with
      * the same name as the fileName provided.
      */
@@ -127,14 +139,12 @@ class Commit implements Serializable {
         }
         return false;
     }
-
     /** Returns true if a commit has an exact version of a file.
      */
     Boolean containsExactFile(File file) {
         String fileName = getFileID(file) + file.getName();
         return files.contains(fileName);
     }
-
     /** Returns the full-length name of a file stored by a commit.
      */
     String getFullFileName(String fileName) {
@@ -145,7 +155,6 @@ class Commit implements Serializable {
         }
         return null;
     }
-
     /** Searches for and returns a Commit by a full or partial name.
      */
     static Commit getCommitFromString(String commit) {
@@ -155,7 +164,7 @@ class Commit implements Serializable {
             List<String> dirFiles = plainFilenamesIn(dir);
             if (dirFiles != null) {
                 String commitStr = commit.substring(2);
-                for (String file : plainFilenamesIn(dir)) {
+                for (String file : dirFiles) {
                     String fileSubstring = file.substring(0, commitStr.length());
                     if (Commit.isCommit(file) && fileSubstring.equals(commitStr)) {
                         return readObject(join(dir, file), Commit.class);
@@ -167,14 +176,12 @@ class Commit implements Serializable {
         System.exit(0);
         return null;
     }
-
     /** Returns the unique ID of a file, based on its contents.
      */
     static String getFileID(File file) {
         String s = readContentsAsString(file);
         return sha1(serialize(s));
     }
-
     /** Creates a base, parent-less commit and returns its ID.
      */
     static String firstCommit() {
@@ -182,7 +189,6 @@ class Commit implements Serializable {
         c.saveCommitment();
         return c.getID();
     }
-
     /** Saves a commit in its current state by its unique ID.
      */
     private void saveCommitment() {
@@ -199,17 +205,20 @@ class Commit implements Serializable {
         Commit child = getCommit(msg, parent.sha);
         /* Children start with the same files as their parents.
          */
-        child.files = (ArrayList<String>) parent.files.clone();
-        for (String file : plainFilenamesIn(Repository.STAGING_DIR)) {
-            /* Remove the previous version of a file
-             * that has been updated and staged.
-             */
-            if (child.containsFileName(file)) {
-                child.removeFileFromCommit(file);
+        child.files = (HashSet<String>) parent.files.clone();
+        List<String> filesInStagingDir = plainFilenamesIn(Repository.STAGING_DIR);
+        if (filesInStagingDir != null) {
+            for (String file : plainFilenamesIn(Repository.STAGING_DIR)) {
+                /* Remove the previous version of a file
+                 * that has been updated and staged.
+                 */
+                if (child.containsFileName(file)) {
+                    child.removeFileFromCommit(file);
+                }
+                /* Add the file to the new commit.
+                 */
+                child.addFileToCommit(file);
             }
-            /* Add the file to the new commit.
-             */
-            child.addFileToCommit(file);
         }
         /* Remove files from commit that have been staged for removal.
          */
@@ -219,7 +228,6 @@ class Commit implements Serializable {
         child.saveCommitment();
         return child.sha;
     }
-
     /** Stores a copy of a file in a commit.
      */
     private void addFileToCommit(String fileString) {
@@ -239,7 +247,6 @@ class Commit implements Serializable {
             e.printStackTrace();
         }
     }
-
     /** Removes a file from a commit if it exists. Only used when
      * a child is updating a file tracked by its parent.
      *
@@ -253,7 +260,6 @@ class Commit implements Serializable {
             }
         }
     }
-
     /** Used in printing the log of a repository.
      */
     @Override
@@ -266,7 +272,6 @@ class Commit implements Serializable {
         str.append("Date: ").append(time).append("\n").append(message).append("\n");
         return str.toString();
     }
-
     /** Iteratively logs commits, following the line of
      * the first parents while ignoring the second parents
      * in cases of merging.
@@ -279,12 +284,11 @@ class Commit implements Serializable {
             System.out.println(c);
         }
     }
-
-    /** Finds and returns every commit in the objects directory
-     * as Commits.
+    /** Searches the objects directory for all commits.
+     * @return Every commit made in the CWD.
      */
-    static List<Commit> getAllCommits() {
-        List<Commit> returnFiles = new ArrayList<>();
+    static ArrayList<Commit> getAllCommits() {
+        ArrayList<Commit> returnFiles = new ArrayList<>();
         for (String c1 : Repository.HEXADECIMAL_CHARS) {
             for (String c2 : Repository.HEXADECIMAL_CHARS) {
                 File dir = join(Repository.OBJECTS_DIR, c1 + c2);

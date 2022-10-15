@@ -4,8 +4,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static gitlet.Utils.*;
 
@@ -68,8 +67,7 @@ class Repository implements Serializable {
     }
     /** The files staged for removal.
      */
-    ArrayList<String> rmStage = new ArrayList<>();
-
+    HashSet<String> rmStage = new HashSet<>();
     /** Initializes a new repository and calls helper functions to:
      * -create .gitlet and related directories
      * -create and save an initial commit
@@ -138,7 +136,6 @@ class Repository implements Serializable {
             e.printStackTrace();
         }
     }
-
     /** Add a file to staging if it varies from the currently staged version
      * and the currently tracked version. If a version is already staged,
      * but the file matches the currently tracked version, remove it from
@@ -176,7 +173,6 @@ class Repository implements Serializable {
             }
         }
     }
-
     /** Create a new commitment if the staging dir or the
      * rmStage contains files and the message is not blank.
      * Clears staging dir and rmStage if successful.
@@ -191,7 +187,7 @@ class Repository implements Serializable {
                 System.out.println("Please enter a commit message.");
             } else {
                 latestCommit = Commit.makeCommitment(msg);
-                rmStage = new ArrayList<>();
+                rmStage = new HashSet<>();
                 updateBranch();
                 updateGlobalLog();
             }
@@ -204,7 +200,6 @@ class Repository implements Serializable {
         File branchFile = join(REFS_DIR, currentBranch);
         writeObject(branchFile, this);
     }
-
     /** Add the latest commit's .toString() to the GLOBAL_LOG_FILE;
      */
     private void updateGlobalLog() {
@@ -235,21 +230,18 @@ class Repository implements Serializable {
             System.out.println("No reason to remove the file.");
         }
     }
-
     /** Prints the log of all commitments of the current HEAD,
      * following the path of only parent1 of each commitment.
      */
     void log() {
         getLatestCommit().log();
     }
-
     /** Prints the log of all commitments stored in .gitlet, in
      * alphabetical order.
      */
     static void globalLog() {
         System.out.println(readContentsAsString(GLOBAL_LOG_FILE));
     }
-
     /** Print the unique ID of any commit which has a message
      * exactly matching the message provided by the user.
      */
@@ -265,7 +257,6 @@ class Repository implements Serializable {
             System.out.println("Found no commit with that message.");
         }
     }
-
     /** Driver function for printing the status of a Repository, including:
      * -branches, with an asterisk next to the current
      * -files staged for addition in the next commitment
@@ -281,7 +272,6 @@ class Repository implements Serializable {
         statusUntracked();
         System.out.println();
     }
-
     /** "Branches" helper function for status.
      */
     private void statusBranches() {
@@ -354,7 +344,6 @@ class Repository implements Serializable {
             }
         }
     }
-
     /** "Untracked Files" helper function for status.
      */
     private void statusUntracked() {
@@ -363,7 +352,6 @@ class Repository implements Serializable {
             System.out.println(file);
         }
     }
-
     /** Returns a list of all untracked files.
      */
     private List<String> getUntrackedFiles() {
@@ -383,7 +371,6 @@ class Repository implements Serializable {
         }
         return returnList;
     }
-
     /** Driver function for checkout which parses the arguments passed
      * to it and calls the appropriate checkout function.
      * -if() is checking out a file from the HEAD repo.
@@ -400,6 +387,8 @@ class Repository implements Serializable {
         } else if (args.length == 2) {
             checkoutChangeBranch(args[1]);
             checkoutCommit(loadHead().getLatestCommit());
+        } else {
+            System.out.println("Incorrect operands.");
         }
     }
     /** Updates the HEAD file to represent a different branch if
@@ -526,14 +515,17 @@ class Repository implements Serializable {
     void merge(String givenBranch) {
         Repository givenBranchRepo = mergeFailureCasesCheck(givenBranch);
         Commit givenCommit = givenBranchRepo.getLatestCommit();
+        Commit currentCommit = getLatestCommit();
+        Commit ancestorCommit = mergeLCA(currentCommit, givenCommit);
+        System.out.println(ancestorCommit);
     }
     /** Helper function for merge that checks for failure cases.
-     * Returns the Repository class of the branch upon success.
+     * @return the Repository class of the branch upon success.
      */
     private Repository mergeFailureCasesCheck(String branch) {
         List<String> filesInStagingDir = plainFilenamesIn(STAGING_DIR);
-        if (filesInStagingDir == null || filesInStagingDir.size() == 0
-                || rmStage.size() == 0) {
+        if ((filesInStagingDir != null && filesInStagingDir.size() != 0)
+                || rmStage.size() != 0) {
             System.out.println("You have uncommitted changes.");
             System.exit(0);
         }
@@ -549,11 +541,55 @@ class Repository implements Serializable {
         untrackedFileCheck();
         return readObject(givenBranchFile, Repository.class);
     }
-
-    /** Recursively checks each commit of each branch and returns their
-     * Latest Common Ancestor ID.
+    /** Iteratively searches for and returns the Latest Common
+     * Ancestor of the current and given commits. Uses two queues
+     * to search through every commit on the given commits side
+     * to find a match on the initial commits side.
+     * @return The Latest Common Ancestor Commit of current and given.
      */
-//    private String mergeLCA(Commit currentCommit, Commit givenCommit) {
-//
-//    }
+    // NOT WORKING!!! Issue with visited? IDK DAWG but every returned Commit is Commit.firstCommit().
+    // Maybe below is right sudo? Double check
+    // if a.time > b.time
+    //     aQueue.add a.parents
+    //     a = aQueue.poll
+    // else is b.time > a.time
+    //     bQueue.add b.parents
+    //     b = bQueue.poll
+    // else
+    //     return a
+    private Commit mergeLCA(Commit initialCurrentCommit, Commit initialGivenCommit) {
+        Commit latestAncestorCommit = Commit.getCommitFromString(Commit.firstCommit());
+        Queue<Commit> currentsToBeChecked = new LinkedList<>();
+        currentsToBeChecked.add(initialCurrentCommit);
+        HashSet<Commit> visited = new HashSet<>();
+        while (!currentsToBeChecked.isEmpty()) {
+            Queue<Commit> givensToBeChecked = new LinkedList<>();
+            givensToBeChecked.add(initialGivenCommit);
+            Commit current = currentsToBeChecked.poll();
+            visited.add(current);
+            while (!givensToBeChecked.isEmpty()) {
+                Commit given = givensToBeChecked.poll();
+                visited.add(given);
+                if (given.getTime() > current.getTime()) {
+                    for (String parentString : given.getParents()) {
+                        Commit parent = Commit.getCommitFromString(parentString);
+                        if (!visited.contains(parent)) {
+                            givensToBeChecked.add(parent);
+                        }
+                    }
+                } else if (given == current) {
+                    if (given.getTime() > latestAncestorCommit.getTime()) {
+                        latestAncestorCommit = given;
+                    }
+                }
+            }
+            for (String parentString : current.getParents()) {
+                Commit parent = Commit.getCommitFromString(parentString);
+                if (!visited.contains(parent)) {
+                    currentsToBeChecked.add(parent);
+                }
+            }
+        }
+        return latestAncestorCommit;
+    }
 }

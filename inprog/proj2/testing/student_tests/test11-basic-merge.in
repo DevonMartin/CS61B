@@ -1,0 +1,34 @@
+I definitions.inc
+> init
+<<<
++ a wug.txt
+> add a
+<<<
+> commit "a is a wug"
+<<<
+> log
+===
+${COMMIT_HEAD}
+a is a wug
+
+===
+${COMMIT_HEAD}
+initial commit
+
+<<<*
+D SPLIT_POINT "${1}"
+> find "a is a wug"
+${SPLIT_POINT}
+<<<
+> branch b
+<<<
+> checkout b
+<<<
++ b notwug.txt
+> add b
+<<<
+> commit "b is not a wug"
+<<<
+> merge master
+${SPLIT_POINT}
+<<<*
