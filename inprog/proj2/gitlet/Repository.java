@@ -513,11 +513,20 @@ class Repository implements Serializable {
      * -
      */
     void merge(String givenBranch) {
+        Commit currentCommit = getLatestCommit();
         Repository givenBranchRepo = mergeFailureCasesCheck(givenBranch);
         Commit givenCommit = givenBranchRepo.getLatestCommit();
-        Commit currentCommit = getLatestCommit();
         Commit ancestorCommit = mergeLCA(currentCommit, givenCommit);
-        System.out.println(ancestorCommit);
+        if (ancestorCommit.equals(givenCommit)) {
+            System.out.println("Given branch is an ancestor of the current branch.");
+        } else if (ancestorCommit.equals(currentCommit)) {
+            checkoutCommit(givenCommit);
+            latestCommit = givenCommit.getID();
+            updateBranch();
+            System.out.println("Current branch fast-forwarded.");
+        } else {
+
+        }
     }
     /** Helper function for merge that checks for failure cases.
      * @return the Repository class of the branch upon success.
@@ -547,49 +556,38 @@ class Repository implements Serializable {
      * to find a match on the initial commits side.
      * @return The Latest Common Ancestor Commit of current and given.
      */
-    // NOT WORKING!!! Issue with visited? IDK DAWG but every returned Commit is Commit.firstCommit().
-    // Maybe below is right sudo? Double check
-    // if a.time > b.time
-    //     aQueue.add a.parents
-    //     a = aQueue.poll
-    // else is b.time > a.time
-    //     bQueue.add b.parents
-    //     b = bQueue.poll
-    // else
-    //     return a
-    private Commit mergeLCA(Commit initialCurrentCommit, Commit initialGivenCommit) {
-        Commit latestAncestorCommit = Commit.getCommitFromString(Commit.firstCommit());
-        Queue<Commit> currentsToBeChecked = new LinkedList<>();
-        currentsToBeChecked.add(initialCurrentCommit);
-        HashSet<Commit> visited = new HashSet<>();
-        while (!currentsToBeChecked.isEmpty()) {
-            Queue<Commit> givensToBeChecked = new LinkedList<>();
-            givensToBeChecked.add(initialGivenCommit);
-            Commit current = currentsToBeChecked.poll();
-            visited.add(current);
-            while (!givensToBeChecked.isEmpty()) {
-                Commit given = givensToBeChecked.poll();
-                visited.add(given);
-                if (given.getTime() > current.getTime()) {
-                    for (String parentString : given.getParents()) {
-                        Commit parent = Commit.getCommitFromString(parentString);
-                        if (!visited.contains(parent)) {
-                            givensToBeChecked.add(parent);
-                        }
-                    }
-                } else if (given == current) {
-                    if (given.getTime() > latestAncestorCommit.getTime()) {
-                        latestAncestorCommit = given;
-                    }
+    private Commit mergeLCA(Commit current, Commit given) {
+        Queue<Commit> currents = new LinkedList<>();
+        Queue<Commit> givens = new LinkedList<>();
+        Commit latestAncestor = Commit.getCommitFromString(Commit.firstCommit());
+        while (true) {
+            if (current.getTime() > given.getTime()) {
+                for (String parent : current.getParents()) {
+                    currents.add(Commit.getCommitFromString(parent));
                 }
-            }
-            for (String parentString : current.getParents()) {
-                Commit parent = Commit.getCommitFromString(parentString);
-                if (!visited.contains(parent)) {
-                    currentsToBeChecked.add(parent);
+                if (currents.isEmpty()) {
+                    break;
                 }
+                current = currents.poll();
+            } else if (given.getTime() > current.getTime()) {
+                for (String parent : given.getParents()) {
+                    givens.add(Commit.getCommitFromString(parent));
+                }
+                if (givens.isEmpty()) {
+                    break;
+                }
+                given = givens.poll();
+            } else {
+                if (current.getTime() > latestAncestor.getTime()) {
+                    latestAncestor = current;
+                }
+                if (currents.isEmpty() || givens.isEmpty()) {
+                    break;
+                }
+                current = currents.poll();
+                given = givens.poll();
             }
         }
-        return latestAncestorCommit;
+        return latestAncestor;
     }
 }

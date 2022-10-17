@@ -39,11 +39,11 @@ class Commit implements Serializable {
     /** The pattern used for a displaying a commits
      * time.
      */
-    private final String pattern = "EEE MMM dd HH:mm:ss yyyy Z";
+    private static final String pattern = "EEE MMM dd HH:mm:ss yyyy Z";
     /** The formatter used for a displaying a commits
      * time.
      */
-    private final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+    private static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
     /** The time a commit was made.
      */
     private final String time;
@@ -112,7 +112,7 @@ class Commit implements Serializable {
         }
         return new String[] {parent1, parent2};
     }
-    /** Return an ArrayList of all files stored by a
+    /** Returns a HashSet of all files stored by a
      * commit by their original name.
      */
     HashSet<String> getCommittedFiles() {
@@ -202,7 +202,7 @@ class Commit implements Serializable {
      */
     static String makeCommitment(String msg) {
         Commit parent = Main.repo.getLatestCommit();
-        Commit child = getCommit(msg, parent.sha);
+        Commit child = getCommit(msg, parent.getID());
         /* Children start with the same files as their parents.
          */
         child.files = (HashSet<String>) parent.files.clone();
@@ -303,5 +303,22 @@ class Commit implements Serializable {
             }
         }
         return returnFiles;
+    }
+
+    /** Used in comparing commits during a merge.
+     *
+     * @param o The Commit to compare to.
+     * @return  True if the ID of two commits are the same.
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+        if (!(o instanceof Commit)) {
+            return false;
+        }
+        Commit c = (Commit) o;
+        return c.getID().equals(this.getID());
     }
 }
