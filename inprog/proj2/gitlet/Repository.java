@@ -525,10 +525,14 @@ class Repository implements Serializable {
             boolean b1 = mergeGivenFiles(givenCommit, currentCommit, ancestorCommit, visited);
             boolean b2 = mergeCurrentFiles(currentCommit, givenCommit, ancestorCommit, visited);
             boolean b3 = mergeAncestorFiles(currentCommit, givenCommit, ancestorCommit, visited);
-            System.out.printf("Merged %s into %s.\n", givenBranch, currentBranch);
             if (b1 || b2 || b3) {
                 System.out.println("Encountered a merge conflict.");
             }
+            String msg = "Merged " + givenBranch + " into " + currentBranch + ".\n";
+            latestCommit = Commit.makeMergeCommitment(msg, currentCommit, givenCommit);
+            rmStage = new HashSet<>();
+            updateBranch();
+            updateGlobalLog();
         }
     }
     /** Helper function for merge that checks for failure cases.
@@ -597,12 +601,12 @@ class Repository implements Serializable {
         if (parents.length == 1) {
             queue.add(parents[0]);
         } else if (parents.length == 2) {
-            if (parents[1].getTime() > parents[2].getTime()) {
+            if (parents[0].getTime() > parents[1].getTime()) {
+                queue.add(parents[0]);
                 queue.add(parents[1]);
-                queue.add(parents[2]);
             } else {
-                queue.add(parents[2]);
                 queue.add(parents[1]);
+                queue.add(parents[0]);
             }
         }
     }
@@ -627,6 +631,7 @@ class Repository implements Serializable {
                     ||
                     (!current.containsFileName(file)
                             && !ancestor.containsFileName(file)))) {
+                checkoutGetFile(given, file);
                 add(file);
             } else if (current.containsFileName(file)
                     && !ancestor.containsFileName(file)
@@ -656,7 +661,7 @@ class Repository implements Serializable {
             if (!given.containsFileName(file)
                 && ancestor.containsExactFile(current.getFullFileName(file))) {
                 rm(file);
-            } else if (current.containsFileName(file)
+            } else if (given.containsFileName(file)
                     && !ancestor.containsFileName(file)
                     && given.getFullFileName(file) != current.getFullFileName(file)) {
                 mergeConflict(current, given, file);

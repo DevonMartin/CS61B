@@ -200,37 +200,43 @@ class Commit implements Serializable {
         File file = join(Repository.OBJECTS_DIR, sha.substring(0, 2), sha.substring(2));
         writeObject(file, this);
     }
-    /** Creates a new commit.
-     * @param msg  The message the commitment will store.
-     * @return     The ID of the commitment for storage in the repo.
-     */
     static String makeCommitment(String msg) {
         Commit parent = Main.repo.getLatestCommit();
         Commit child = getCommit(msg, parent.getID());
-        /* Children start with the same files as their parents.
-         */
         child.files = (HashSet<String>) parent.files.clone();
+        return makeCommitmentHelper(child);
+    }
+    static String makeMergeCommitment(String msg, Commit parent1, Commit parent2) {
+        Commit child = getCommit(msg, parent1.getID(), parent2.getID());
+        child.files = (HashSet<String>) parent1.files.clone();
+        return makeCommitmentHelper(child);
+    }
+    /** Creates a new commit.
+     * @param c    A newly created Commit.
+     * @return     The ID of the commitment for storage in the repo.
+     */
+    private static String makeCommitmentHelper(Commit c) {
         List<String> filesInStagingDir = plainFilenamesIn(Repository.STAGING_DIR);
         if (filesInStagingDir != null) {
             for (String file : plainFilenamesIn(Repository.STAGING_DIR)) {
                 /* Remove the previous version of a file
                  * that has been updated and staged.
                  */
-                if (child.containsFileName(file)) {
-                    child.removeFileFromCommit(file);
+                if (c.containsFileName(file)) {
+                    c.removeFileFromCommit(file);
                 }
                 /* Add the file to the new commit.
                  */
-                child.addFileToCommit(file);
+                c.addFileToCommit(file);
             }
         }
         /* Remove files from commit that have been staged for removal.
          */
         for (String file : Main.repo.rmStage) {
-            child.removeFileFromCommit(file);
+            c.removeFileFromCommit(file);
         }
-        child.saveCommitment();
-        return child.sha;
+        c.saveCommitment();
+        return c.sha;
     }
     /** Stores a copy of a file in a commit.
      */
