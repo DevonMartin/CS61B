@@ -39,11 +39,11 @@ class Commit implements Serializable {
     /** The pattern used for a displaying a commits
      * time.
      */
-    private static final String pattern = "EEE MMM dd HH:mm:ss yyyy Z";
+    private static final String PATTERN = "EEE MMM dd HH:mm:ss yyyy Z";
     /** The formatter used for a displaying a commits
      * time.
      */
-    private static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+    private static final SimpleDateFormat SIMPLE_DATE_FORMAT = new SimpleDateFormat(PATTERN);
     /** The time a commit was made.
      */
     private final String time;
@@ -73,7 +73,7 @@ class Commit implements Serializable {
      */
     private Commit(String msg, Date date, String parent1, String parent2) {
         this.message = msg;
-        this.time = simpleDateFormat.format(date);
+        this.time = SIMPLE_DATE_FORMAT.format(date);
         this.timeForComparison = date.getTime();
         this.parent1 = parent1;
         this.parent2 = parent2;
@@ -104,13 +104,17 @@ class Commit implements Serializable {
     String getMessage() {
         return message;
     }
-    String[] getParents() {
+
+    /** Returns an array of the two parents of this.
+     * If a parent is null, ignore it.
+     */
+    Commit[] getParents() {
         if (parent1 == null) {
-            return new String[] {};
+            return new Commit[] {};
         } else if (parent2 == null) {
-            return new String[] {parent1};
+            return new Commit[] {getCommitFromString(parent1)};
         }
-        return new String[] {parent1, parent2};
+        return new Commit[] {getCommitFromString(parent1), getCommitFromString(parent2)};
     }
     /** Returns a HashSet of all files stored by a
      * commit by their original name.
@@ -132,18 +136,18 @@ class Commit implements Serializable {
      * the same name as the fileName provided.
      */
     Boolean containsFileName(String fileName) {
-        for (String file : getCommittedFiles()) {
-            if (file.equals(fileName)) {
-                return true;
-            }
-        }
-        return false;
+        return getCommittedFiles().contains(fileName);
     }
     /** Returns true if a commit has an exact version of a file.
      */
     Boolean containsExactFile(File file) {
         String fileName = getFileID(file) + file.getName();
         return files.contains(fileName);
+    }
+    /** Returns true if a commit has an exact version of a file.
+     */
+    Boolean containsExactFile(String file) {
+        return files.contains(file);
     }
     /** Returns the full-length name of a file stored by a commit.
      */
@@ -320,5 +324,15 @@ class Commit implements Serializable {
         }
         Commit c = (Commit) o;
         return c.getID().equals(this.getID());
+    }
+
+    /** The first six digits of an ID of a commit is likely sufficient
+     * in keeping files unique for a hash code.
+     * @return The first six digits of the ID of a commit, converted
+     * from Hex to Decimal.
+     */
+    @Override
+    public int hashCode() {
+        return Integer.parseInt(sha.substring(0, 6), 16);
     }
 }

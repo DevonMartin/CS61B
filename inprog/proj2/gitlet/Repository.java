@@ -1,10 +1,17 @@
 package gitlet;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
 
 import static gitlet.Utils.*;
 
@@ -498,19 +505,8 @@ class Repository implements Serializable {
     }
     /** Merges secondary branch into current branch.
      * Cases:
-     * -Given branch's latestCommit is the original commit
-     * from the branching; given branch never changed.
-     * System.out.println("Given branch is an ancestor of the current branch.")
-     * Nothing changes.
-     * -The current branch is the original commit from the
-     * branching; current branch never changed.
-     * Fast-forward the current branch to the latest commit of
-     * the given branch.
-     * checkoutCommit(givenCommit);
-     * latestCommit = givenCommit.getID();
-     * updateBranch();
-     * System.out.println("Current branch fast-forwarded.")
-     * -
+     * 8. Files are modified in different ways in current and given.
+     * "Merge Conflict"
      */
     void merge(String givenBranch) {
         Commit currentCommit = getLatestCommit();
@@ -525,7 +521,14 @@ class Repository implements Serializable {
             updateBranch();
             System.out.println("Current branch fast-forwarded.");
         } else {
-
+            HashSet<String> visited = new HashSet<>();
+            boolean b1 = mergeGivenFiles(givenCommit, currentCommit, ancestorCommit, visited);
+            boolean b2 = mergeCurrentFiles(currentCommit, givenCommit, ancestorCommit, visited);
+            boolean b3 = mergeAncestorFiles(currentCommit, givenCommit, ancestorCommit, visited);
+            System.out.printf("Merged %s into %s.\n", givenBranch, currentBranch);
+            if (b1 || b2 || b3) {
+                System.out.println("Encountered a merge conflict.");
+            }
         }
     }
     /** Helper function for merge that checks for failure cases.
@@ -551,9 +554,7 @@ class Repository implements Serializable {
         return readObject(givenBranchFile, Repository.class);
     }
     /** Iteratively searches for and returns the Latest Common
-     * Ancestor of the current and given commits. Uses two queues
-     * to search through every commit on the given commits side
-     * to find a match on the initial commits side.
+     * Ancestor of the current and given commits using BFS.
      * @return The Latest Common Ancestor Commit of current and given.
      */
     private Commit mergeLCA(Commit current, Commit given) {
@@ -562,17 +563,13 @@ class Repository implements Serializable {
         Commit latestAncestor = Commit.getCommitFromString(Commit.firstCommit());
         while (true) {
             if (current.getTime() > given.getTime()) {
-                for (String parent : current.getParents()) {
-                    currents.add(Commit.getCommitFromString(parent));
-                }
+                mergeAddParentsToQueue(current, currents);
                 if (currents.isEmpty()) {
                     break;
                 }
                 current = currents.poll();
             } else if (given.getTime() > current.getTime()) {
-                for (String parent : given.getParents()) {
-                    givens.add(Commit.getCommitFromString(parent));
-                }
+                mergeAddParentsToQueue(given, givens);
                 if (givens.isEmpty()) {
                     break;
                 }
@@ -589,5 +586,151 @@ class Repository implements Serializable {
             }
         }
         return latestAncestor;
+    }
+
+    /** Compares a Commits parents based on their time of creation
+     * and adds them to the queue given with the most recent Commit
+     * being added first.
+     */
+    private void mergeAddParentsToQueue(Commit child, Queue<Commit> queue) {
+        Commit[] parents = child.getParents();
+        if (parents.length == 1) {
+            queue.add(parents[0]);
+        } else if (parents.length == 2) {
+            if (parents[1].getTime() > parents[2].getTime()) {
+                queue.add(parents[1]);
+                queue.add(parents[2]);
+            } else {
+                queue.add(parents[2]);
+                queue.add(parents[1]);
+            }
+        }
+    }
+    /** Handles merge duties of cycling through all Given files.
+     *
+     * @param given    The Given Commit from merge.
+     * @param current  The Current Commit from merge.
+     * @param ancestor The Ancestor Commit from merge.
+     * @param visited  The HashSet of files that have already been checked from merge.
+     * @return         True if a merge conflict occurred.
+     */
+    private boolean mergeGivenFiles(Commit given, Commit current,
+                                 Commit ancestor, HashSet<String> visited) {
+        boolean conflict = false;
+        for (String file : given.getCommittedFiles()) {
+            if (visited.contains(file)) {
+                continue;
+            }
+            if ((current.containsFileName(file)
+                    && ancestor.containsFileName(file)
+                    && current.getFullFileName(file) == ancestor.getFullFileName(file)
+                    ||
+                    (!current.containsFileName(file)
+                            && !ancestor.containsFileName(file)))) {
+                add(file);
+            } else if (current.containsFileName(file)
+                    && !ancestor.containsFileName(file)
+                    && given.getFullFileName(file) != current.getFullFileName(file)) {
+                mergeConflict(current, given, file);
+                conflict = true;
+            }
+            visited.add(file);
+        }
+        return conflict;
+    }
+    /** Handles merge duties of cycling through all Current files.
+     *
+     * @param current  The Current Commit from merge.
+     * @param given    The Given Commit from merge.
+     * @param ancestor The Ancestor Commit from merge.
+     * @param visited  The HashSet of files that have already been checked from merge.
+     * @return         True if a merge conflict occurred.
+     */
+    private boolean mergeCurrentFiles(Commit current, Commit given,
+                                   Commit ancestor, HashSet<String> visited) {
+        boolean conflict = false;
+        for (String file : current.getCommittedFiles()) {
+            if (visited.contains(file)) {
+                continue;
+            }
+            if (!given.containsFileName(file)
+                && ancestor.containsExactFile(current.getFullFileName(file))) {
+                rm(file);
+            } else if (current.containsFileName(file)
+                    && !ancestor.containsFileName(file)
+                    && given.getFullFileName(file) != current.getFullFileName(file)) {
+                mergeConflict(current, given, file);
+                conflict = true;
+            }
+            visited.add(file);
+        }
+        return conflict;
+    }
+    /** Handles merge duties of cycling through all Ancestor files.
+     *
+     * @param current  The Current Commit from merge.
+     * @param given    The Given Commit from merge.
+     * @param ancestor The Ancestor Commit from merge.
+     * @param visited  The HashSet of files that have already been checked from merge.
+     * @return         True if a merge conflict occurred.
+     */
+    private boolean mergeAncestorFiles(Commit current, Commit given,
+                                    Commit ancestor, HashSet<String> visited) {
+        boolean conflict = false;
+        for (String file : ancestor.getCommittedFiles()) {
+            if (visited.contains(file)) {
+                continue;
+            }
+            boolean currentHasFile = current.containsFileName(file);
+            boolean givenHasFile = given.containsFileName(file);
+            String originalFile = ancestor.getFullFileName(file);
+            boolean currentHasExactFile = current.containsExactFile(originalFile);
+            boolean givenHasExactFile = given.containsExactFile(originalFile);
+            if ((currentHasFile
+                 && givenHasFile
+                 && !currentHasExactFile
+                 && !givenHasExactFile
+                 && current.getFullFileName(file) != given.getFullFileName(file))
+                ||
+                    (currentHasFile
+                     && !givenHasFile
+                     && !currentHasExactFile)
+                ||
+                    (givenHasFile
+                     && !currentHasFile
+                     && !givenHasExactFile)) {
+                mergeConflict(current, given, file);
+                conflict = true;
+            }
+            visited.add(file);
+        }
+        return conflict;
+    }
+
+    /** Handles reading and writing the file that has the merge conflict.
+     * @param current  The Current Commit from merge.
+     * @param given    The Given Commit from merge.
+     * @param fileName The name of the file that has the merge conflict.
+     */
+    private void mergeConflict(Commit current, Commit given, String fileName) {
+        StringBuilder sb = new StringBuilder();
+        File file = join(CWD, fileName);
+        sb.append("<<<<<<< HEAD\n");
+        if (current.containsFileName(fileName)) {
+            checkoutGetFile(current, fileName);
+            sb.append(readContentsAsString(file));
+        } else {
+            sb.append("\n");
+        }
+        sb.append("=======\n");
+        if (given.containsFileName(fileName)) {
+            checkoutGetFile(given, fileName);
+            sb.append(readContentsAsString(file));
+        } else {
+            sb.append("\n");
+        }
+        sb.append(">>>>>>>");
+        writeContents(file, sb.toString());
+        add(fileName);
     }
 }
