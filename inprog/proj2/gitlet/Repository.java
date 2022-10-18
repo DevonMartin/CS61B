@@ -33,7 +33,7 @@ class Repository implements Serializable {
 
     /** The Current Working Directory of the user.
      */
-    static final File CWD = new File(System.getProperty("user.dir"));
+    private static final File CWD = new File(System.getProperty("user.dir"));
     /** The .gitlet directory of a repository.
      */
     private static final File GITLET_DIR = join(CWD, ".gitlet");
@@ -42,7 +42,7 @@ class Repository implements Serializable {
     private static final File HEAD = join(GITLET_DIR, "HEAD");
     /** The global log file.
      */
-    private static final File GLOBAL_LOG_FILE = join(GITLET_DIR, "global log");
+    static final File GLOBAL_LOG_FILE = join(GITLET_DIR, "global log");
     /** The directory storing directories for file
      * and commit storage within the .gitlet directory.
      */
@@ -96,7 +96,7 @@ class Repository implements Serializable {
     /** Returns true if the CWD contains a .gitlet/ dir.
      */
     static boolean inRepo() {
-        return Files.exists(GITLET_DIR.toPath());
+        return GITLET_DIR.exists();
     }
     /** Returns the Repository stored by HEAD file.
      */
@@ -113,21 +113,12 @@ class Repository implements Serializable {
                 join(OBJECTS_DIR, c1 + c2).mkdir();
             }
         }
-        try {
-            GLOBAL_LOG_FILE.createNewFile();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
         REFS_DIR.mkdir();
         STAGING_DIR.mkdir();
     }
     private void initializeGlobalLog() {
-        updateGlobalLog();
-        try {
-            String previousLog = readContentsAsString(GLOBAL_LOG_FILE);
-            FileWriter writer = new FileWriter(GLOBAL_LOG_FILE, false);
-            writer.write(previousLog.substring(0, previousLog.length() - 1));
-            writer.close();
+        try (FileWriter writer = new FileWriter(GLOBAL_LOG_FILE)) {
+            writer.write(getLatestCommit().toString());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -135,10 +126,8 @@ class Repository implements Serializable {
     /** Change what branch the HEAD points at and the user is in.
      */
     private static void setHeadTo(String branch) {
-        try {
-            FileWriter writer = new FileWriter(HEAD, false);
+        try (FileWriter writer = new FileWriter(HEAD, false)) {
             writer.write(branch);
-            writer.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -210,12 +199,10 @@ class Repository implements Serializable {
     /** Add the latest commit's .toString() to the GLOBAL_LOG_FILE;
      */
     private void updateGlobalLog() {
-        try {
-            StringBuilder updatedLog = new StringBuilder(getLatestCommit().toString())
-                    .append("\n").append(readContentsAsString(GLOBAL_LOG_FILE));
-            FileWriter writer = new FileWriter(GLOBAL_LOG_FILE, false);
-            writer.write(updatedLog.toString());
-            writer.close();
+        String updatedLog = getLatestCommit().toString()
+                + "\n" + readContentsAsString(GLOBAL_LOG_FILE);
+        try (FileWriter writer = new FileWriter(GLOBAL_LOG_FILE, false)) {
+            writer.write(updatedLog);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -322,12 +309,13 @@ class Repository implements Serializable {
             for (String fileString : filesInCWD) {
                 File cwdFile = join(CWD, fileString);
                 File stagingFile = join(STAGING_DIR, fileString);
-                if (c.containsFileName(fileString)
+                if ((c.containsFileName(fileString)
                         && !c.containsExactFile(cwdFile)
-                        && !stagingFile.exists()) {
-                    System.out.println(fileString + " (modified)");
-                } else if (stagingFile.exists()
-                        && !Commit.getFileID(cwdFile).equals(Commit.getFileID(stagingFile))) {
+                        && !stagingFile.exists())
+                    ||
+                        (stagingFile.exists()
+                                && !Commit.getFileID(cwdFile)
+                                .equals(Commit.getFileID(stagingFile)))) {
                     System.out.println(fileString + " (modified)");
                 }
             }
@@ -402,17 +390,15 @@ class Repository implements Serializable {
      * the requested branch exists, and it is not the current branch.
      */
     private void checkoutChangeBranch(String reqBranch) {
+        File branchFile = join(REFS_DIR, reqBranch);
         if (reqBranch.equals(currentBranch)) {
             System.out.println("No need to checkout the current branch.");
-            return;
-        }
-        File branchFile = join(REFS_DIR, reqBranch);
-        if (!branchFile.exists()) {
+        } else if (!branchFile.exists()) {
             System.out.println("No such branch exists.");
-            return;
+        } else {
+            untrackedFileCheck();
+            setHeadTo(reqBranch);
         }
-        untrackedFileCheck();
-        setHeadTo(reqBranch);
     }
     /** Changes files in the CWD to that of another commit. Must be
      * used AFTER checking for untracked files in the way.
@@ -522,17 +508,13 @@ class Repository implements Serializable {
             System.out.println("Current branch fast-forwarded.");
         } else {
             HashSet<String> visited = new HashSet<>();
-            boolean b1 = mergeGivenFiles(givenCommit, currentCommit, ancestorCommit, visited);
+            boolean b1 = mergeGivenFiles(currentCommit, givenCommit, ancestorCommit, visited);
             boolean b2 = mergeCurrentFiles(currentCommit, givenCommit, ancestorCommit, visited);
             boolean b3 = mergeAncestorFiles(currentCommit, givenCommit, ancestorCommit, visited);
             if (b1 || b2 || b3) {
                 System.out.println("Encountered a merge conflict.");
             }
-            String msg = "Merged " + givenBranch + " into " + currentBranch + ".\n";
-            latestCommit = Commit.makeMergeCommitment(msg, currentCommit, givenCommit);
-            rmStage = new HashSet<>();
-            updateBranch();
-            updateGlobalLog();
+            mergeMakeCommitment(givenBranch, currentCommit, givenCommit);
         }
     }
     /** Helper function for merge that checks for failure cases.
@@ -618,28 +600,32 @@ class Repository implements Serializable {
      * @param visited  The HashSet of files that have already been checked from merge.
      * @return         True if a merge conflict occurred.
      */
-    private boolean mergeGivenFiles(Commit given, Commit current,
+    private boolean mergeGivenFiles(Commit current, Commit given,
                                  Commit ancestor, HashSet<String> visited) {
         boolean conflict = false;
         for (String file : given.getCommittedFiles()) {
             if (visited.contains(file)) {
                 continue;
             }
-            if ((current.containsFileName(file)
-                    && ancestor.containsFileName(file)
-                    && current.getFullFileName(file) == ancestor.getFullFileName(file)
+            boolean currentContainsFile = current.containsFileName(file);
+            boolean ancestorContainsFile = ancestor.containsFileName(file);
+            String givenFullFileName = given.getFullFileName(file);
+            if ((currentContainsFile
+                    && ancestorContainsFile
+                    && current.getFullFileName(file).equals(ancestor.getFullFileName(file))
                     ||
-                    (!current.containsFileName(file)
-                            && !ancestor.containsFileName(file)))) {
+                    (!currentContainsFile
+                            && !ancestorContainsFile))) {
                 checkoutGetFile(given, file);
                 add(file);
-            } else if (current.containsFileName(file)
-                    && !ancestor.containsFileName(file)
-                    && given.getFullFileName(file) != current.getFullFileName(file)) {
+                visited.add(file);
+            } else if (currentContainsFile
+                    && !ancestorContainsFile
+                    && !givenFullFileName.equals(current.getFullFileName(file))) {
                 mergeConflict(current, given, file);
                 conflict = true;
+                visited.add(file);
             }
-            visited.add(file);
         }
         return conflict;
     }
@@ -658,16 +644,21 @@ class Repository implements Serializable {
             if (visited.contains(file)) {
                 continue;
             }
-            if (!given.containsFileName(file)
-                && ancestor.containsExactFile(current.getFullFileName(file))) {
+            boolean givenHasFile = given.containsFileName(file);
+            String currentFileName = current.getFullFileName(file);
+            boolean ancestorHasExactFile = ancestor.containsExactFile(currentFileName);
+            boolean ancestorHasFile = ancestor.containsFileName(file);
+            if (!givenHasFile
+                && ancestorHasExactFile) {
                 rm(file);
-            } else if (given.containsFileName(file)
-                    && !ancestor.containsFileName(file)
-                    && given.getFullFileName(file) != current.getFullFileName(file)) {
+                visited.add(file);
+            } else if (givenHasFile
+                    && !ancestorHasFile
+                    && !given.getFullFileName(file).equals(currentFileName)) {
                 mergeConflict(current, given, file);
                 conflict = true;
+                visited.add(file);
             }
-            visited.add(file);
         }
         return conflict;
     }
@@ -695,7 +686,7 @@ class Repository implements Serializable {
                  && givenHasFile
                  && !currentHasExactFile
                  && !givenHasExactFile
-                 && current.getFullFileName(file) != given.getFullFileName(file))
+                 && !current.getFullFileName(file).equals(given.getFullFileName(file)))
                 ||
                     (currentHasFile
                      && !givenHasFile
@@ -706,36 +697,58 @@ class Repository implements Serializable {
                      && !givenHasExactFile)) {
                 mergeConflict(current, given, file);
                 conflict = true;
+                visited.add(file);
             }
-            visited.add(file);
         }
         return conflict;
     }
 
-    /** Handles reading and writing the file that has the merge conflict.
-     * @param current  The Current Commit from merge.
-     * @param given    The Given Commit from merge.
-     * @param fileName The name of the file that has the merge conflict.
+    /** Handles reading and writing the file that has the merge conflict
+     * by combining the contents of both files and forcing the user to
+     * choose the correct version and delete the incorrect.
+     * @param current          The Current Commit from merge.
+     * @param given            The Given Commit from merge.
+     * @param fileOriginalName The name of the file that has the merge conflict.
      */
-    private void mergeConflict(Commit current, Commit given, String fileName) {
-        StringBuilder sb = new StringBuilder();
-        File file = join(CWD, fileName);
-        sb.append("<<<<<<< HEAD\n");
-        if (current.containsFileName(fileName)) {
-            checkoutGetFile(current, fileName);
-            sb.append(readContentsAsString(file));
-        } else {
-            sb.append("\n");
+    private void mergeConflict(Commit current, Commit given, String fileOriginalName) {
+        File file = join(CWD, fileOriginalName);
+        String s = "<<<<<<< HEAD\n";
+        s += mergeFileReader(current, fileOriginalName);
+        s += "\n=======\n";
+        s += mergeFileReader(given, fileOriginalName);
+        s += ">>>>>>>";
+        writeContents(file, s);
+        add(fileOriginalName);
+    }
+    /** Reads a file tracked by a commit as a string.
+     *
+     * @param c    The commit tracking the file.
+     * @param file The file's original name.
+     * @return     The contents of the file as a string.
+     */
+    private String mergeFileReader(Commit c, String file) {
+        if (!c.containsFileName(file)) {
+            return "";
         }
-        sb.append("=======\n");
-        if (given.containsFileName(fileName)) {
-            checkoutGetFile(given, fileName);
-            sb.append(readContentsAsString(file));
-        } else {
-            sb.append("\n");
-        }
-        sb.append(">>>>>>>");
-        writeContents(file, sb.toString());
-        add(fileName);
+        String fullFileName = c.getFullFileName(file);
+        String dirName = fullFileName.substring(0, 2);
+        String fileName = fullFileName.substring(2);
+        File fileToRead = join(OBJECTS_DIR, dirName, fileName);
+        return readContentsAsString(fileToRead);
+    }
+
+    /** Makes a commitment after a merge has happened.
+     *
+     * @param givenBranch   The branch that was merged in.
+     * @param currentCommit The current commitment.
+     * @param givenCommit   The current commitment of the givenBranch.
+     */
+    private void mergeMakeCommitment(String givenBranch,
+                                     Commit currentCommit, Commit givenCommit) {
+        String msg = "Merged " + givenBranch + " into " + currentBranch + ".";
+        latestCommit = Commit.makeMergeCommitment(msg, currentCommit, givenCommit);
+        rmStage = new HashSet<>();
+        updateBranch();
+        updateGlobalLog();
     }
 }

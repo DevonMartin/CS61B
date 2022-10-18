@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import static gitlet.Utils.*;
 
@@ -94,7 +97,8 @@ class Commit implements Serializable {
         return sha;
     }
 
-    /** Returns the amount of time that has passed since The Epoch.
+    /** Returns the amount of time that has passed since The Epoch
+     * to the creation of this commit.
      */
     long getTime() {
         return timeForComparison;
@@ -299,18 +303,18 @@ class Commit implements Serializable {
      */
     static ArrayList<Commit> getAllCommits() {
         ArrayList<Commit> returnFiles = new ArrayList<>();
-        for (String c1 : Repository.HEXADECIMAL_CHARS) {
-            for (String c2 : Repository.HEXADECIMAL_CHARS) {
-                File dir = join(Repository.OBJECTS_DIR, c1 + c2);
-                List<String> files = plainFilenamesIn(dir);
-                if (files != null) {
-                    for (String file : files) {
-                        if (Commit.isCommit(file)) {
-                            returnFiles.add(getCommitFromString(c1 + c2 + file));
-                        }
-                    }
-                }
-            }
+        /** The following code is adapted from:
+         *  @author Holger
+         *  @date   Jan 14, 2016 at 17:33
+         *  @link   https://stackoverflow.com/a/34796064/19117711
+          */
+        Pattern pattern = Pattern.compile("commit (.+)");
+        try (Stream<String> lines = Files.lines(Repository.GLOBAL_LOG_FILE.toPath())) {
+            lines.map(pattern::matcher)
+                    .filter(Matcher::find)
+                    .forEach(mr -> returnFiles.add(getCommitFromString(mr.group(1))));
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         return returnFiles;
     }
