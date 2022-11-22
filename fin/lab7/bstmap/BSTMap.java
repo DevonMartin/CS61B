@@ -15,6 +15,22 @@ public class BSTMap<K extends Comparable, V> implements Map61B {
             this.value = value;
         }
 
+        public boolean containsKey(K key) {
+            int comp = key.compareTo(this.key);
+            if (comp == 0) {
+                return true;
+            } else if (comp < 0) {
+                if (left != null) {
+                    return left.containsKey(key);
+                }
+            } else {
+                if (right != null) {
+                    return right.containsKey(key);
+                }
+            }
+            return false;
+        }
+
         public V get(K key) {
             int comp = key.compareTo(this.key);
             if (comp == 0) {
@@ -31,7 +47,20 @@ public class BSTMap<K extends Comparable, V> implements Map61B {
             return null;
         }
         public void put(K key, V value) {
-
+            int comp = key.compareTo(this.key);
+            if (comp < 0) {
+                if (left != null) {
+                    left.put(key, value);
+                } else {
+                    left = new BSTNode(key, value);
+                }
+            } else {
+                if (right != null) {
+                    right.put(key, value);
+                } else {
+                    right = new BSTNode(key, value);
+                }
+            }
         }
     }
 
@@ -73,12 +102,16 @@ public class BSTMap<K extends Comparable, V> implements Map61B {
 
     @Override
     public boolean containsKey(Object key) {
-        return get(key) != null;
+        if (hasRoot()) {
+            return root.containsKey((K) key);
+        } else {
+            return false;
+        }
     }
 
     @Override
     public V get(Object key) {
-        if (root != null) {
+        if (hasRoot()) {
             return root.get((K) key);
         }
         return null;
@@ -96,6 +129,7 @@ public class BSTMap<K extends Comparable, V> implements Map61B {
         } else {
             root = new BSTNode((K) key, (V) value);
         }
+        size++;
     }
 
     @Override
