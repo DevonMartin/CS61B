@@ -8,34 +8,60 @@ public class BSTMap<K extends Comparable, V> implements Map61B {
     private class BSTNode {
         private K key;
         private V value;
+        private BSTNode left = null;
+        private BSTNode right = null;
         BSTNode(K key, V value) {
             this.key = key;
             this.value = value;
+        }
+
+        public V get(K key) {
+            int comp = key.compareTo(this.key);
+            if (comp == 0) {
+                return value;
+            } else if (comp < 0) {
+                if (left != null) {
+                    return left.get(key);
+                }
+            } else {
+                if (right != null) {
+                    return right.get(key);
+                }
+            }
+            return null;
+        }
+        public void put(K key, V value) {
+
         }
     }
 
     private BSTNode root;
     private int size;
-    private BSTMap left;
-    private BSTMap right;
 
     public BSTMap() {
         root = null;
         size = 0;
-        left = null;
-        right = null;
+    }
+
+    public BSTMap(K key, V value) {
+        root = new BSTNode(key, value);
+        size = 1;
+    }
+
+    public boolean hasRoot() {
+        return root != null;
     }
 
     public void printInOrder() {
-        printInOrder(this);
+        printInOrder(this.root);
     }
 
-    private static void printInOrder(BSTMap tree) {
-        if (tree != null) {
-            printInOrder(tree.left);
-            System.out.println("Key: " + tree.root.key);
-            System.out.println("Value: " + tree.root.value);
-            printInOrder(tree.right);
+    private void printInOrder(BSTNode node) {
+        if (node != null) {
+            printInOrder(node.left);
+            System.out.println("Key: " + node.key);
+            System.out.println("Value: " + node.value);
+            printInOrder(node.right);
         }
     }
 
@@ -43,8 +69,6 @@ public class BSTMap<K extends Comparable, V> implements Map61B {
     public void clear() {
         root = null;
         size = 0;
-        left = null;
-        right = null;
     }
 
     @Override
@@ -54,22 +78,10 @@ public class BSTMap<K extends Comparable, V> implements Map61B {
 
     @Override
     public V get(Object key) {
-        return get((K) key, this);
-    }
-
-    private V get(K key, BSTMap tree) {
-        if (tree == null || tree.root == null) {
-            return null;
+        if (root != null) {
+            return root.get((K) key);
         }
-        BSTNode node = tree.root;
-        int comp = key.compareTo(node.key);
-        if (comp == 0) {
-            return node.value;
-        } else if (comp < 0) {
-            return get(key, tree.left);
-        } else {
-            return get(key, tree.right);
-        }
+        return null;
     }
 
     @Override
@@ -79,11 +91,11 @@ public class BSTMap<K extends Comparable, V> implements Map61B {
 
     @Override
     public void put(Object key, Object value) {
-
-    }
-
-    private void put(K key, V value) {
-
+        if (root != null) {
+            root.put((K) key, (V) value);
+        } else {
+            root = new BSTNode((K) key, (V) value);
+        }
     }
 
     @Override
