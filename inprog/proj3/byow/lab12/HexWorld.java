@@ -26,7 +26,6 @@ public class HexWorld {
         this.width = maxWidthOfHexagon * 3 + size * 2 + 2;
         this.height = size * 10 + 2;
         this.nextX = width / 2 - size / 2 + size - 1;
-        System.out.println(width + ":" + nextX);
         makeHexagon();
         fillHexagon();
     }
