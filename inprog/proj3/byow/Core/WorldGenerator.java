@@ -3,10 +3,11 @@ package byow.Core;
 import byow.TileEngine.TETile;
 import byow.TileEngine.Tileset;
 
+import java.io.Serializable;
 import java.util.Random;
 
-public class WorldGenerator {
-    public class Bounds {
+public class WorldGenerator implements Serializable {
+    private class Bounds {
         int x1, y1, x2, y2;
         Bounds(int x1, int y1, int x2, int y2) {
             this.x1 = x1;
@@ -16,19 +17,21 @@ public class WorldGenerator {
         }
     }
 
-    TETile[][] world;
-    int WIDTH;
-    int HEIGHT;
-    boolean[][] usedTiles;
-    TETile grass = Tileset.GRASS;
-    TETile tree = Tileset.TREE;
-    TETile mountain = Tileset.MOUNTAIN;
-    TETile flower = Tileset.FLOWER;
-    TETile wall = Tileset.WALL;
-    TETile floor = Tileset.FLOOR;
-    TETile player = Tileset.AVATAR;
-    TETile portal = Tileset.PORTAL;
-    TETile playerOn;
+    private TETile[][] world;
+    private int WIDTH;
+    private int HEIGHT;
+    private boolean[][] usedTiles;
+    static private TETile grass = Tileset.GRASS;
+    static private TETile tree = Tileset.TREE;
+    static private TETile mountain = Tileset.MOUNTAIN;
+    static private TETile flower = Tileset.FLOWER;
+    static private TETile wall = Tileset.WALL;
+    static private TETile floor = Tileset.FLOOR;
+    static private TETile player = Tileset.AVATAR;
+    static private TETile portal = Tileset.PORTAL;
+    static TETile playerOn;
+    private int playerX;
+    private int playerY;
 
     WorldGenerator(TETile[][] world, int width, int height) {
         this.world = world;
@@ -88,15 +91,15 @@ public class WorldGenerator {
      * Builds a spawn room and returns the tile under the player.
      * @param random  The Random instance being used by Engine.
      */
-    void generateSpawnRoom(Random random) {
+    private void generateSpawnRoom(Random random) {
         Bounds b = generateRoom(random);
-        int playerX = random.nextInt(b.x2 - b.x1 - 2) + b.x1 + 1;
-        int playerY = random.nextInt(b.y2 - b.y1 - 2) + b.y1 + 1;
+        playerX = random.nextInt(b.x2 - b.x1 - 2) + b.x1 + 1;
+        playerY = random.nextInt(b.y2 - b.y1 - 2) + b.y1 + 1;
         playerOn = world[playerX][playerY];
         world[playerX][playerY] = player;
     }
 
-    Bounds generateRoom(Random random) throws StackOverflowError {
+    private Bounds generateRoom(Random random) throws StackOverflowError {
         int w = random.nextInt(6) + 6;
         int h = random.nextInt(4) + 6;
         int x1 = random.nextInt(WIDTH - w);

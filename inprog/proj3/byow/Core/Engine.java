@@ -6,15 +6,14 @@ import byow.TileEngine.Tileset;
 import edu.princeton.cs.introcs.StdDraw;
 
 import java.awt.*;
-import java.io.File;
-import java.io.Serializable;
+import java.io.*;
 import java.math.BigInteger;
 import java.nio.file.Paths;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 public class Engine implements Serializable {
-    TERenderer ter = new TERenderer();
+    private transient TERenderer ter = new TERenderer();
     /* Feel free to change the width and height. */
     public static final int WIDTH = 80;
     public static final int HEIGHT = 30;
@@ -26,11 +25,11 @@ public class Engine implements Serializable {
     long seed = random.nextLong();
     // nextSeed is always the first long retrieved from a new random
     long nextSeed;
-    InputString inputString;
-    boolean TESTING;
-    boolean onMainMenu = true;
-    String DATA_DIR = System.getProperty("user.dir") + "/.data";
-    TETile menuTile = new TETile(' ', Color.black, Color.white, "");
+    transient InputString inputString;
+    transient boolean TESTING;
+    transient boolean onMainMenu = true;
+    static String DATA_DIR = System.getProperty("user.dir") + "/.data";
+    static TETile menuTile = new TETile(' ', Color.black, Color.white, "");
 
     private class InputString {
         String s;
@@ -125,7 +124,6 @@ public class Engine implements Serializable {
         while (onMainMenu) {
             displayMainMenu();
         }
-        generateWorld();
         displayWorld();
         listenGameplay();
     }
@@ -273,6 +271,7 @@ public class Engine implements Serializable {
                     seed = updateSeed(seed, c);
                 }
                 finalizeSeed(seed);
+                generateWorld();
                 break;
             } else if (c == 'L') {
                 loadGame();
@@ -351,21 +350,58 @@ public class Engine implements Serializable {
 
     private void listenGameplay() {
         while (true) {
-            if (listenForCharPress() == 'N') {
+            char c = listenForCharPress();
+            if (c == 'N') {
                 seed = random.nextLong();
                 generateWorld();
                 displayWorld();
+            } else if (c == 'W' || c == 'A' || c == 'S' || c == 'D') {
+//                wg.move(c);
+            } else if (c == ' ') {
+//                wg.interact();
+            } else if (c == ':') {
+                if (listenForCharPress() == 'Q') {
+                    saveAndQuit();
+                }
             }
         }
     }
 
+    private void saveAndQuit() {
+        try {
+            FileOutputStream file = new FileOutputStream(DATA_DIR + "/save.txt");
+            ObjectOutputStream out = new ObjectOutputStream(file);
+            out.writeObject(this);
+            out.close();
+            file.close();
+        } catch (IOException i) {
+            i.printStackTrace();
+        }
+        System.exit(0);
+    }
+
     private void loadGame() {
-        File f = Paths.get(DATA_DIR, "/save").toFile();
+        File f = Paths.get(DATA_DIR, "/save.txt").toFile();
         if (f.exists()) {
             if (TESTING) {
                 System.out.println();
             }
-            System.out.println("TODO: Need to enable loading game from save.");
+            try {
+                FileInputStream file = new FileInputStream(f);
+                ObjectInputStream obj = new ObjectInputStream(file);
+                Engine e = (Engine) obj.readObject();
+                obj.close();
+                file.close();
+                this.nextSeed = e.nextSeed;
+                this.random = e.random;
+                this.seed = e.seed;
+                this.wg = e.wg;
+                this.world = e.world;
+            } catch (IOException i) {
+                i.printStackTrace();
+            } catch (ClassNotFoundException c) {
+                c.printStackTrace();
+            }
         } else {
             System.exit(1);
         }
