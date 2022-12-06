@@ -7,21 +7,54 @@ import edu.princeton.cs.introcs.StdDraw;
 
 import java.awt.*;
 import java.io.File;
+import java.io.Serializable;
+import java.math.BigInteger;
 import java.nio.file.Paths;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-public class Engine {
+public class Engine implements Serializable {
     TERenderer ter = new TERenderer();
     /* Feel free to change the width and height. */
     public static final int WIDTH = 80;
     public static final int HEIGHT = 30;
     private TETile[][] world = new TETile[WIDTH][HEIGHT];
+    // random is used to generate a seed to later update random.
     Random random = new Random();
+    // seed is randomly generated for the Random used by the game.
     long seed = random.nextLong();
+    // nextSeed is always the first long retrieved from a new random
+    long nextSeed;
+    InputString inputString;
     boolean TESTING;
+    boolean onMainMenu = true;
     String DATA_DIR = System.getProperty("user.dir") + "/.data";
-    TETile white = new TETile(' ', Color.black, Color.white, "");
+    TETile menuTile = new TETile(' ', Color.black, Color.white, "");
+    TETile grass = Tileset.GRASS;
+    TETile tree = Tileset.TREE;
+    TETile mountain = Tileset.MOUNTAIN;
+    TETile flower = Tileset.FLOWER;
+    TETile wall = Tileset.WALL;
+    TETile floor = Tileset.FLOOR;
+    TETile player = Tileset.AVATAR;
+    TETile playerOn;
+
+    private class InputString {
+        String s;
+        int index = 0;
+        InputString(String s) {
+            this.s = s;
+        }
+        boolean hasNext() {
+            return index < s.length();
+        }
+        char next() {
+            char returnChar = s.charAt(index);
+            returnChar = Character.toUpperCase(returnChar);
+            index++;
+            return returnChar;
+        }
+    }
 
     /**
      * Creates a new Engine in non-testing mode. Creates required
@@ -39,6 +72,19 @@ public class Engine {
     Engine(boolean testing) {
         this.TESTING = testing;
         createDataDir();
+        ter.initialize(WIDTH, HEIGHT);
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for (int h = HEIGHT - 1; h >= 0; h--) {
+            for (int w = 0; w < WIDTH; w++) {
+                sb.append(world[w][h].character());
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
     }
 
     /**
@@ -78,7 +124,12 @@ public class Engine {
      * including inputs from the main menu.
      */
     public void interactWithKeyboard() {
-        displayMainMenu();
+        ter.initialize(WIDTH, HEIGHT);
+        while (onMainMenu) {
+            displayMainMenu();
+        }
+        generateWorld();
+        displayWorld();
     }
 
     /**
@@ -111,30 +162,67 @@ public class Engine {
         // See proj3.byow.InputDemo for a demo of how you can make a nice clean interface
         // that works for many different input types.
 
-        TETile[][] finalWorldFrame = null;
-        return finalWorldFrame;
+        generateBlankWorld();
+        generateMainMenu();
+        this.inputString = new InputString(input);
+        while (inputString.hasNext()) {
+            if (onMainMenu) {
+                handleMmInput(inputString.next());
+                if (!onMainMenu) {
+                    generateWorld();
+                }
+            } else {
+                handleGameplayInput(inputString.next());
+            }
+        }
+        return world;
+    }
+
+    private void handleMmInput(char c) {
+        if (c == 'N') {
+            seedBox();
+            String seed = "";
+            while (c != 'S' && inputString.hasNext()) {
+                c = inputString.next();
+                seed = updateSeed(seed, c);
+            }
+            finalizeSeed(seed);
+            onMainMenu = false;
+        } else if (c == 'L') {
+            loadGame();
+            onMainMenu = false;
+        } else if (c == 'Q') {
+            System.exit(0);
+        }
+    }
+
+    private void handleGameplayInput(char c) {
     }
 
     private void generateWorld() {
         generateBlankWorld();
-    }
-
-    private void generateWorld(Random r) {
-        random = r;
-        generateBlankWorld();
+        // TODO: Random elements - the actual content
+        generateSpawnRoom();
     }
 
     /**
-     * Fills the world with 24/25 grass tiles and 1/25 flower tiles.
+     * Fills the world with grass, flowers, trees and mountains randomly.
      */
     private void generateBlankWorld() {
         random.setSeed(seed);
+        this.nextSeed = random.nextLong();
+        TETile last = grass;
         for (int w = 0; w < WIDTH; w++) {
             for (int h = 0; h < HEIGHT; h++) {
-                if (random.nextInt(25) == 0) {
-                    world[w][h] = Tileset.FLOWER;
+                int rInt = random.nextInt(100);
+                if (rInt == 0) {
+                    world[w][h] = flower;
+                } else if (rInt == 1) {
+                    world[w][h] = tree;
+                } else if (rInt == 2) {
+                    world[w][h] = mountain;
                 } else {
-                    world[w][h] = Tileset.GRASS;
+                    world[w][h] = grass;
                 }
             }
         }
@@ -144,15 +232,14 @@ public class Engine {
      * Clears board to white where Main Menu options will be displayed.
      */
     private void generateMainMenu() {
-        generateBlankWorld();
         for (int w = WIDTH / 2 - 8; w < WIDTH / 2 + 8; w++) {
             for (int h = HEIGHT / 2 + 9; h < HEIGHT / 2 + 12; h++) {
-                world[w][h] = white;
+                world[w][h] = menuTile;
             }
         }
         for (int w = WIDTH / 2 - 3; w < WIDTH / 2 + 3; w++) {
             for (int h = HEIGHT / 2 + 2; h < HEIGHT / 2 + 6; h++) {
-                world[w][h] = white;
+                world[w][h] = menuTile;
             }
         }
     }
@@ -162,8 +249,15 @@ public class Engine {
      * for input.
      */
     private void displayMainMenu() {
+        generateBlankWorld();
         generateMainMenu();
         displayWorld();
+        addMainMenuText();
+        StdDraw.show();
+        listenMainMenu();
+    }
+
+    private void addMainMenuText() {
         Font titleFont = new Font("Monaco", Font.BOLD, 32);
         Font generalFont = StdDraw.getFont();
         StdDraw.setFont(titleFont);
@@ -172,8 +266,6 @@ public class Engine {
         StdDraw.text(WIDTH / 2.0, 20, "(N)ew Game");
         StdDraw.text(WIDTH / 2.0, 19, "(L)oad Game");
         StdDraw.text(WIDTH / 2.0, 18, "(Q)uit Game");
-        StdDraw.show();
-        listenMainMenu();
     }
 
     /**
@@ -184,12 +276,44 @@ public class Engine {
         while (true) {
             char c = listenForCharPress();
             if (c == 'N') {
-                getSeed();
-                displayMainMenu();
+                String seed = "";
+                while (c != 'S') {
+                    displayGetSeed();
+                    displaySeed(seed);
+                    c = listenForCharPress();
+                    seed = updateSeed(seed, c);
+                }
+                finalizeSeed(seed);
+                break;
             } else if (c == 'L') {
                 loadGame();
+                break;
             } else if (c == 'Q') {
                 System.exit(0);
+            }
+        }
+        onMainMenu = false;
+    }
+
+    private void displayGetSeed() {
+        seedBox();
+        displayWorld();
+        addMainMenuText();
+        StdDraw.text(WIDTH / 2.0, 15, "Enter seed or leave blank for random.");
+        StdDraw.text(WIDTH / 2.0, 14, "Press S to continue.");
+        clearSeedLine();
+        StdDraw.show();
+    }
+
+    /**
+     * Whites out necessary tiles for displaying seed prompt.
+     */
+    private void seedBox() {
+        int w = 20;
+        for (int y = 10; y < 16; y++) {
+            for (int i = 0; i < w; i++) {
+                int x = (int) (WIDTH / 2.0 - w / 2 + i);
+                world[x][y] = menuTile;
             }
         }
     }
@@ -200,54 +324,36 @@ public class Engine {
      * be a new Random instance with the provided seed. Else,
      * random remains unchanged.
      */
-    private void getSeed() {
-        seedBox();
-        StdDraw.text(WIDTH / 2.0, 15, "Enter seed or leave blank for random.");
-        StdDraw.text(WIDTH / 2.0, 14, "Press S to continue.");
-        StdDraw.show();
-        char c = listenForCharPress();
-        String seed = "";
-        while (c != 'S') {
-            if (Character.isDigit(c) || c == 8) {
-                if (c == 8 && seed.length() > 0) {
-                    seed = seed.substring(0, seed.length() - 1);
-                } else if (seed.length() < 15) {
-                    seed += c;
-                }
-                clearSeedLine(seed);
-                StdDraw.text(WIDTH / 2.0, 12, seed);
-                StdDraw.show();
-            }
-            c = listenForCharPress();
+    private String updateSeed(String seed, char c) {
+        if (c == 8 && seed.length() > 0) {
+            seed = seed.substring(0, seed.length() - 1);
+        } else if (Character.isDigit(c) && seed.length() < 30) {
+            seed += c;
         }
+        return seed;
+    }
+
+    private void displaySeed(String seed) {
+        StdDraw.text(WIDTH / 2.0, 12, seed);
+        StdDraw.show();
+    }
+
+    private void clearSeedLine() {
+        int w = 20;
+        for (int i = 0; i < w; i++) {
+            int x = (int) (WIDTH / 2.0 - w / 2 + i);
+            world[x][11] = menuTile;
+            world[x][12] = menuTile;
+        }
+    }
+
+    private void finalizeSeed(String seed) {
         if (seed.equals("")) {
             return;
         }
-        this.seed = Long.parseLong(seed);
-    }
-
-    private void seedBox() {
-        int w = 20;
-        for (int y = 10; y < 16; y++) {
-            for (int i = 0; i < w; i++) {
-                int x = (int) (WIDTH / 2.0 - w / 2 + i);
-                if (world[x][y] == white) {
-                    continue;
-                }
-                world[x][y] = white;
-                world[x][y].draw(x, y);
-            }
-        }
-        StdDraw.show();
-    }
-
-    private void clearSeedLine(String s) {
-        int w = Math.max(s.length(), 20);
-        for (int i = 0; i < w; i++) {
-            int x = (int) (WIDTH / 2.0 - w / 2 + i);
-            world[x][11].draw(x, 11);
-            world[x][12].draw(x, 12);
-        }
+        BigInteger bigInteger = new BigInteger(seed);
+        long longSeed = bigInteger.longValue();
+        this.seed = longSeed;
     }
 
     private void loadGame() {
@@ -263,7 +369,30 @@ public class Engine {
     }
 
     private void displayWorld() {
-        ter.initialize(WIDTH, HEIGHT);
         ter.renderFrame(world);
+    }
+
+    private void generateSpawnRoom() {
+        int w = random.nextInt(6) + 6;
+        int h = random.nextInt(4) + 6;
+        int x = random.nextInt(WIDTH - w);
+        int y = random.nextInt(HEIGHT - h);
+        for (int i = x; i < x + w; i++) {
+            for (int j = y; j < y + h; j++) {
+                if (i == x || i == x + w - 1 || j == y || j == y + h - 1) {
+                    world[i][j] = wall;
+                } else {
+                    world[i][j] = floor;
+                }
+            }
+        }
+        int playerX = random.nextInt(w - 2) + x + 1;
+        int playerY = random.nextInt(h - 2) + y + 1;
+        playerOn = world[playerX][playerY];
+        world[playerX][playerY] = player;
+    }
+
+    private void generateRoom() {
+
     }
 }
