@@ -1,7 +1,6 @@
 package byow.TileEngine;
 
 import java.awt.Color;
-import java.io.File;
 
 /**
  * Contains constant tile objects, to avoid having to remake the same tiles in different parts of
@@ -35,6 +34,7 @@ public class Tileset {
     public static final TETile SAND = new TETile('▒', Color.yellow, Color.black, "sand", path + "sand.png");
     public static final TETile MOUNTAIN = new TETile('▲', Color.gray, Color.black, "mountain", path + "mountain.png");
     public static final TETile TREE = new TETile('♠', Color.green, Color.black, "tree", path + "tree.png");
+    public static final TETile PORTAL = new TETile('0', Color.blue, Color.black, "portal", path + "portal.png");
 }
 
 

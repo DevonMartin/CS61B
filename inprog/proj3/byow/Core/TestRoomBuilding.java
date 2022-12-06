@@ -10,7 +10,7 @@ public class TestRoomBuilding {
         for (int i = 0; i < 50000; i++) {
             Engine e = new Engine();
             e.interactWithInputString("ns");
-            assertTrue(e.playerOn == Tileset.FLOOR);
+            assertTrue(e.toString(), e.playerOn() == Tileset.FLOOR);
         }
     }
 }

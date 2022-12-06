@@ -19,6 +19,7 @@ public class Engine implements Serializable {
     public static final int WIDTH = 80;
     public static final int HEIGHT = 30;
     private TETile[][] world = new TETile[WIDTH][HEIGHT];
+    private WorldGenerator wg = new WorldGenerator(world, WIDTH, HEIGHT);
     // random is used to generate a seed to later update random.
     Random random = new Random();
     // seed is randomly generated for the Random used by the game.
@@ -30,14 +31,6 @@ public class Engine implements Serializable {
     boolean onMainMenu = true;
     String DATA_DIR = System.getProperty("user.dir") + "/.data";
     TETile menuTile = new TETile(' ', Color.black, Color.white, "");
-    TETile grass = Tileset.GRASS;
-    TETile tree = Tileset.TREE;
-    TETile mountain = Tileset.MOUNTAIN;
-    TETile flower = Tileset.FLOWER;
-    TETile wall = Tileset.WALL;
-    TETile floor = Tileset.FLOOR;
-    TETile player = Tileset.AVATAR;
-    TETile playerOn;
 
     private class InputString {
         String s;
@@ -66,11 +59,11 @@ public class Engine implements Serializable {
 
 
     /**
-     * Creates a new Engine which may be for testing or not. Creates required
+     * Creates a new Engine for testing. Creates required
      * directories if they do not exist.
      */
     Engine(boolean testing) {
-        this.TESTING = testing;
+        this.TESTING = true;
         createDataDir();
         ter.initialize(WIDTH, HEIGHT);
     }
@@ -85,6 +78,10 @@ public class Engine implements Serializable {
             sb.append("\n");
         }
         return sb.toString();
+    }
+
+    TETile playerOn() {
+        return wg.playerOn;
     }
 
     /**
@@ -130,6 +127,7 @@ public class Engine implements Serializable {
         }
         generateWorld();
         displayWorld();
+        listenGameplay();
     }
 
     /**
@@ -199,33 +197,24 @@ public class Engine implements Serializable {
     private void handleGameplayInput(char c) {
     }
 
+    /**
+     * Obtains a random world from the WorldGenerator. Resets
+     * the random with the saved seed before creation.
+     */
     private void generateWorld() {
-        generateBlankWorld();
-        // TODO: Random elements - the actual content
-        generateSpawnRoom();
+        random.setSeed(seed);
+        this.nextSeed = random.nextLong();
+        wg.generateWorld(random);
     }
 
     /**
-     * Fills the world with grass, flowers, trees and mountains randomly.
+     * Populates the game with a background but no content. Used for
+     * developing the Main Menu.
      */
     private void generateBlankWorld() {
         random.setSeed(seed);
         this.nextSeed = random.nextLong();
-        TETile last = grass;
-        for (int w = 0; w < WIDTH; w++) {
-            for (int h = 0; h < HEIGHT; h++) {
-                int rInt = random.nextInt(100);
-                if (rInt == 0) {
-                    world[w][h] = flower;
-                } else if (rInt == 1) {
-                    world[w][h] = tree;
-                } else if (rInt == 2) {
-                    world[w][h] = mountain;
-                } else {
-                    world[w][h] = grass;
-                }
-            }
-        }
+        wg.generateBlankWorld(random);
     }
 
     /**
@@ -351,9 +340,23 @@ public class Engine implements Serializable {
         if (seed.equals("")) {
             return;
         }
-        BigInteger bigInteger = new BigInteger(seed);
-        long longSeed = bigInteger.longValue();
-        this.seed = longSeed;
+        try {
+            BigInteger bigInteger = new BigInteger(seed);
+            long longSeed = bigInteger.longValue();
+            this.seed = longSeed;
+        } catch (NumberFormatException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void listenGameplay() {
+        while (true) {
+            if (listenForCharPress() == 'N') {
+                seed = random.nextLong();
+                generateWorld();
+                displayWorld();
+            }
+        }
     }
 
     private void loadGame() {
@@ -370,29 +373,5 @@ public class Engine implements Serializable {
 
     private void displayWorld() {
         ter.renderFrame(world);
-    }
-
-    private void generateSpawnRoom() {
-        int w = random.nextInt(6) + 6;
-        int h = random.nextInt(4) + 6;
-        int x = random.nextInt(WIDTH - w);
-        int y = random.nextInt(HEIGHT - h);
-        for (int i = x; i < x + w; i++) {
-            for (int j = y; j < y + h; j++) {
-                if (i == x || i == x + w - 1 || j == y || j == y + h - 1) {
-                    world[i][j] = wall;
-                } else {
-                    world[i][j] = floor;
-                }
-            }
-        }
-        int playerX = random.nextInt(w - 2) + x + 1;
-        int playerY = random.nextInt(h - 2) + y + 1;
-        playerOn = world[playerX][playerY];
-        world[playerX][playerY] = player;
-    }
-
-    private void generateRoom() {
-
     }
 }
