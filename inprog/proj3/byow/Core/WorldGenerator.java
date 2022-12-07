@@ -4,9 +4,13 @@ import byow.TileEngine.TETile;
 import byow.TileEngine.Tileset;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Random;
 
 public class WorldGenerator implements Serializable {
+    /**
+     * Represents the bounds a room encompasses.
+     */
     private static class Bounds {
         int x1, y1, x2, y2;
         Bounds(int x1, int y1, int x2, int y2) {
@@ -14,6 +18,21 @@ public class WorldGenerator implements Serializable {
             this.y1 = y1;
             this.x2 = x2;
             this.y2 = y2;
+        }
+    }
+
+    /**
+     * Extension of Bounds, also representing the location of
+     * the room's door.
+     */
+    private static class Room {
+        Bounds b;
+        int doorX;
+        int doorY;
+        Room(Bounds b, int doorX, int doorY) {
+            this.b = b;
+            this.doorX = doorX;
+            this.doorY = doorY;
         }
     }
 
@@ -36,6 +55,17 @@ public class WorldGenerator implements Serializable {
     WorldGenerator(Engine engine) {
         this.engine = engine;
         resetUsedTiles();
+    }
+
+    private ArrayList<String> walkableTileDescriptions() {
+        ArrayList<String> l = new ArrayList<>();
+        l.add(lockedDoor.description());
+        l.add(unlockedDoor.description());
+        l.add(floor.description());
+        l.add(portal.description());
+        l.add(grass.description());
+        l.add(flower.description());
+        return l;
     }
 
     private void resetUsedTiles() {
@@ -74,11 +104,13 @@ public class WorldGenerator implements Serializable {
     void generateWorld(Random random) {
         resetUsedTiles();
         generateBlankWorld(random);
-        generateSpawnRoom(random);
+        Room lastRoom = generateSpawnRoom(random);
         int rooms = random.nextInt(18) + 4;
         for (int i = 0; i < rooms; i++) {
             try {
-                generateRoom(random);
+                Bounds b = getNewRoomBounds(random);
+                Room nextRoom = generateRoomAt(b, random);
+//                connectRooms(lastRoom, nextRoom);
             } catch (StackOverflowError e) {
                 return;
             }
@@ -89,39 +121,66 @@ public class WorldGenerator implements Serializable {
      * Builds a spawn room and returns the tile under the player.
      * @param random  The Random instance being used by Engine.
      */
-    private void generateSpawnRoom(Random random) {
-        Bounds b = generateRoom(random);
+    private Room generateSpawnRoom(Random random) {
+        Bounds b = getNewRoomBounds(random);
+        Room room = generateRoomAt(b, random);
         playerX = random.nextInt(b.x2 - b.x1 - 2) + b.x1 + 1;
         playerY = random.nextInt(b.y2 - b.y1 - 2) + b.y1 + 1;
         playerOn = engine.world[playerX][playerY];
         engine.world[playerX][playerY] = player;
+        return room;
     }
 
-    private Bounds generateRoom(Random random) throws StackOverflowError {
+    private Bounds getNewRoomBounds(Random random) throws StackOverflowError {
         int w = random.nextInt(6) + 6;
         int h = random.nextInt(4) + 6;
-        int x1 = random.nextInt(Engine.WIDTH - w);
-        int y1 = random.nextInt(Engine.HEIGHT - h);
+        int x1 = random.nextInt(Engine.WIDTH - w - 4) + 2;
+        int y1 = random.nextInt(Engine.HEIGHT - h - 4) + 2;
         int x2 = x1 + w;
         int y2 = y1 + h;
         for (int i = x1; i < x2; i++) {
             for (int j = y1; j < y2; j++) {
                 if (usedTiles[i][j]) {
-                    return generateRoom(random);
+                    return getNewRoomBounds(random);
                 }
             }
         }
-        for (int i = x1; i < x2; i++) {
-            for (int j = y1; j < y2; j++) {
-                if (i == x1 || i == x2 - 1 || j == y1 || j == y2 - 1) {
-                    engine.world[i][j] = wall;
+        return new Bounds(x1, y1, x2, y2);
+    }
+
+    private Room generateRoomAt(Bounds b, Random random) {
+        int w = b.x2 - b.x1;
+        int h = b.y2 - b.y1;
+        int walls = w * 2 + h * 2 - 4;
+        ArrayList<Integer> corners = new ArrayList<>();
+        corners.add(0);
+        corners.add(h - 1);
+        corners.add(walls - h);
+        System.out.println(corners);
+        int door = 0;
+        while (corners.contains(door)) {
+            door = random.nextInt(walls - 1);
+        }
+        System.out.println(door);
+        int checkedWalls = 0;
+        Room r = null;
+        for (int i = b.x1; i < b.x2; i++) {
+            for (int j = b.y1; j < b.y2; j++) {
+                if (i == b.x1 || i == b.x2 - 1 || j == b.y1 || j == b.y2 - 1) {
+                    if (checkedWalls == door) {
+                        engine.world[i][j] = unlockedDoor;
+                        r = new Room(b, i, j);
+                    } else {
+                        engine.world[i][j] = wall;
+                    }
+                    checkedWalls++;
                 } else {
                     engine.world[i][j] = floor;
                 }
                 usedTiles[i][j] = true;
             }
         }
-        return new Bounds(x1, y1, x2, y2);
+        return r;
     }
     void move(char c) {
         if (c == 'W') {
@@ -138,7 +197,7 @@ public class WorldGenerator implements Serializable {
     private void moveTo(int x, int y) {
         TETile t = engine.world[x][y];
         String d = t.description();
-        if (d.equals("floor") || d.equals("portal") || d.equals("unlocked door") || d.equals("locked door")) {
+        if (walkableTileDescriptions().contains(d)) {
             engine.world[playerX][playerY] = playerOn;
             playerOn = t;
             engine.world[x][y] = player;
