@@ -7,7 +7,7 @@ import java.io.Serializable;
 import java.util.Random;
 
 public class WorldGenerator implements Serializable {
-    private class Bounds {
+    private static class Bounds {
         int x1, y1, x2, y2;
         Bounds(int x1, int y1, int x2, int y2) {
             this.x1 = x1;
@@ -18,17 +18,19 @@ public class WorldGenerator implements Serializable {
     }
 
     private TETile[][] world;
-    private int WIDTH;
+    private final int WIDTH;
     private int HEIGHT;
     private boolean[][] usedTiles;
-    static private TETile grass = Tileset.GRASS;
-    static private TETile tree = Tileset.TREE;
-    static private TETile mountain = Tileset.MOUNTAIN;
-    static private TETile flower = Tileset.FLOWER;
-    static private TETile wall = Tileset.WALL;
-    static private TETile floor = Tileset.FLOOR;
-    static private TETile player = Tileset.AVATAR;
-    static private TETile portal = Tileset.PORTAL;
+    static private final TETile grass = Tileset.GRASS;
+    static private final TETile tree = Tileset.TREE;
+    static private final TETile mountain = Tileset.MOUNTAIN;
+    static private final TETile flower = Tileset.FLOWER;
+    static private final TETile wall = Tileset.WALL;
+    static private final TETile floor = Tileset.FLOOR;
+    static private final TETile lockedDoor = Tileset.LOCKED_DOOR;
+    static private final TETile unlockedDoor = Tileset.UNLOCKED_DOOR;
+    static private final TETile player = Tileset.AVATAR;
+    static private final TETile portal = Tileset.PORTAL;
     static TETile playerOn;
     private int playerX;
     private int playerY;
@@ -126,5 +128,26 @@ public class WorldGenerator implements Serializable {
         Bounds b = new Bounds(x1, y1, x2, y2);
         return b;
     }
+    void move(char c) {
+        if (c == 'W') {
+            moveTo(playerX, playerY + 1);
+        } else if (c == 'A') {
+            moveTo(playerX - 1, playerY);
+        } else if (c == 'S') {
+            moveTo(playerX, playerY - 1);
+        } else {
+            moveTo(playerX + 1, playerY);
+        }
+    }
 
+    private void moveTo(int x, int y) {
+        TETile t = world[x][y];
+        if (t == floor || t == portal || t == unlockedDoor || t == lockedDoor) {
+            world[playerX][playerY] = playerOn;
+            playerOn = t;
+            world[x][y] = player;
+            playerX = x;
+            playerY = y;
+        }
+    }
 }

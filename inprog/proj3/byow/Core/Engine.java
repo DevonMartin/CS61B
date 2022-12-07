@@ -62,7 +62,8 @@ public class Engine implements Serializable {
      * directories if they do not exist.
      */
     Engine(boolean testing) {
-        this.TESTING = true;
+        System.out.println("TODO: Don't forget to remove this option for production!");
+        this.TESTING = testing;
         createDataDir();
         ter.initialize(WIDTH, HEIGHT);
     }
@@ -356,7 +357,8 @@ public class Engine implements Serializable {
                 generateWorld();
                 displayWorld();
             } else if (c == 'W' || c == 'A' || c == 'S' || c == 'D') {
-//                wg.move(c);
+                wg.move(c);
+                displayWorld();
             } else if (c == ' ') {
 //                wg.interact();
             } else if (c == ':') {
