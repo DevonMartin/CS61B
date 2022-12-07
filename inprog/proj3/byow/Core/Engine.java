@@ -2,7 +2,6 @@ package byow.Core;
 
 import byow.TileEngine.TERenderer;
 import byow.TileEngine.TETile;
-import byow.TileEngine.Tileset;
 import edu.princeton.cs.introcs.StdDraw;
 
 import java.awt.*;
@@ -13,12 +12,12 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 public class Engine implements Serializable {
-    private transient TERenderer ter = new TERenderer();
+    private final transient TERenderer ter = new TERenderer();
     /* Feel free to change the width and height. */
     public static final int WIDTH = 80;
     public static final int HEIGHT = 30;
-    private TETile[][] world = new TETile[WIDTH][HEIGHT];
-    private WorldGenerator wg = new WorldGenerator(world, WIDTH, HEIGHT);
+    TETile[][] world = new TETile[WIDTH][HEIGHT];
+    private WorldGenerator wg = new WorldGenerator(this);
     // random is used to generate a seed to later update random.
     Random random = new Random();
     // seed is randomly generated for the Random used by the game.
@@ -31,7 +30,7 @@ public class Engine implements Serializable {
     static String DATA_DIR = System.getProperty("user.dir") + "/.data";
     static TETile menuTile = new TETile(' ', Color.black, Color.white, "");
 
-    private class InputString {
+    private static class InputString {
         String s;
         int index = 0;
         InputString(String s) {
@@ -131,7 +130,7 @@ public class Engine implements Serializable {
 
     /**
      * Method used for autograding and testing your code. The input string will be a series
-     * of characters (for example, "n123sswwdasdassadwas", "n123sss:q", "lwww". The engine should
+     * of characters (for example, "n123sswwdasdassadwas", "n123sss:q", "lwww"). The engine should
      * behave exactly as if the user typed these characters into the engine using
      * interactWithKeyboard.
      *
@@ -194,6 +193,18 @@ public class Engine implements Serializable {
     }
 
     private void handleGameplayInput(char c) {
+        if (c == 'N') {
+            seed = random.nextLong();
+            generateWorld();
+        } else if (c == 'W' || c == 'A' || c == 'S' || c == 'D') {
+            wg.move(c);
+        } else if (c == ' ') {
+//                wg.interact();
+        } else if (c == ':') {
+            if (inputString.hasNext() && inputString.next() == 'Q') {
+                save();
+            }
+        }
     }
 
     /**
@@ -245,6 +256,9 @@ public class Engine implements Serializable {
         listenMainMenu();
     }
 
+    /**
+     * Adds text to main menu.
+     */
     private void addMainMenuText() {
         Font titleFont = new Font("Monaco", Font.BOLD, 32);
         Font generalFont = StdDraw.getFont();
@@ -284,6 +298,9 @@ public class Engine implements Serializable {
         onMainMenu = false;
     }
 
+    /**
+     * Adds text to seed box to prompt user.
+     */
     private void displayGetSeed() {
         seedBox();
         displayWorld();
@@ -342,8 +359,7 @@ public class Engine implements Serializable {
         }
         try {
             BigInteger bigInteger = new BigInteger(seed);
-            long longSeed = bigInteger.longValue();
-            this.seed = longSeed;
+            this.seed = bigInteger.longValue();
         } catch (NumberFormatException e) {
             e.printStackTrace();
         }
@@ -363,13 +379,14 @@ public class Engine implements Serializable {
 //                wg.interact();
             } else if (c == ':') {
                 if (listenForCharPress() == 'Q') {
-                    saveAndQuit();
+                    save();
+                    System.exit(0);
                 }
             }
         }
     }
 
-    private void saveAndQuit() {
+    private void save() {
         try {
             FileOutputStream file = new FileOutputStream(DATA_DIR + "/save.txt");
             ObjectOutputStream out = new ObjectOutputStream(file);
@@ -379,7 +396,6 @@ public class Engine implements Serializable {
         } catch (IOException i) {
             i.printStackTrace();
         }
-        System.exit(0);
     }
 
     private void loadGame() {
@@ -399,10 +415,8 @@ public class Engine implements Serializable {
                 this.seed = e.seed;
                 this.wg = e.wg;
                 this.world = e.world;
-            } catch (IOException i) {
+            } catch (IOException | ClassNotFoundException i) {
                 i.printStackTrace();
-            } catch (ClassNotFoundException c) {
-                c.printStackTrace();
             }
         } else {
             System.exit(1);
