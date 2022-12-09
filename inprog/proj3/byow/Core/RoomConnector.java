@@ -17,10 +17,15 @@ public class RoomConnector {
         RoomConnector.world = world;
         Stack<Coords> path = getPath(r1, r2);
         try {
+            Coords c;
             while (path == null) {
+                c = r1.doorCoords;
+                world[c.x][c.y] = Tileset.WALL;
                 r1 = wg.generateRoomAt(r1.b, r);
                 path = getPath(r1, r2);
                 if (path == null) {
+                    c = r2.doorCoords;
+                    world[c.x][c.y] = Tileset.WALL;
                     r2 = wg.generateRoomAt(r2.b, r);
                     path = getPath(r1, r2);
                 }
@@ -29,10 +34,18 @@ public class RoomConnector {
         if (path == null) {
             return;
         }
+        boolean indoors = r.nextInt(4) != 0;
+        if (!indoors) {
+            return;
+        }
+        ArrayList<Coords> hallway = new ArrayList<>();
         while (!path.isEmpty()) {
             Coords c = path.pop();
             world[c.x][c.y] = Tileset.FLOOR;
+            hallway.add(c);
+            wg.usedTiles.add(c);
         }
+        addHallwayWalls(hallway, wg);
     }
 
 
@@ -88,5 +101,19 @@ public class RoomConnector {
         }
         addSurroundingTiles(q, current, marked);
         return checkTiles(q, destination, marked);
+    }
+    private static void addHallwayWalls(ArrayList<Coords> floor, WorldGenerator wg) {
+        floor.forEach((t) -> {
+            for (int i = t.x - 1; i <= t.x + 1; i++) {
+                for (int j = t.y - 1; j <= t.y + 1; j++) {
+                    String d = world[i][j].description();
+                    if (!(d.equals("floor") || d.equals("door"))) {
+                        Coords c = new Coords(i, j);
+                        world[i][j] = Tileset.WALL;
+                        wg.usedTiles.add(c);
+                    }
+                }
+            }
+        });
     }
 }

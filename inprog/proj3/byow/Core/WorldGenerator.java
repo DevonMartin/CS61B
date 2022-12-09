@@ -8,16 +8,11 @@ import java.util.*;
 
 public class WorldGenerator implements Serializable {
 
-    static class Coords {
+    static class Coords implements Serializable {
         int x, y;
         Coords(int x, int y) {
             this.x = x;
             this.y = y;
-        }
-
-        @Override
-        public String toString() {
-            return "[" + x + ", " + y + "]";
         }
 
         @Override
@@ -72,8 +67,11 @@ public class WorldGenerator implements Serializable {
             corners.add(new Coords(c1.x, c2.y - 1));
             corners.add(new Coords(c2.x - 1, c1.y));
             corners.add(new Coords(c2.x - 1, c2.y - 1));
-            System.out.println(corners);
             return corners;
+        }
+
+        boolean isWall(Coords c) {
+            return c.x == this.c1.x || c.x == this.c2.x - 1 || c.y == this.c1.y || c.y == this.c2.y - 1;
         }
     }
 
@@ -95,7 +93,7 @@ public class WorldGenerator implements Serializable {
     }
 
     Engine engine;
-    private ArrayList<Coords> usedTiles;
+    ArrayList<Coords> usedTiles;
     static private final TETile grass = Tileset.GRASS;
     static private final TETile tree = Tileset.TREE;
     static private final TETile mountain = Tileset.MOUNTAIN;
@@ -183,17 +181,22 @@ public class WorldGenerator implements Serializable {
         resetUsedTiles();
         generateBlankWorld(random);
         Room lastRoom = generateSpawnRoom(random);
-//        int rooms = random.nextInt(18) + 4;
-        int rooms = 1;
+        Room nextRoom = null;
+        int rooms = random.nextInt(4) + 2;
         for (int i = 0; i < rooms; i++) {
             try {
                 Bounds b = getNewRoomBounds(random);
-                Room nextRoom = generateRoomAt(b, random);
+                nextRoom = generateRoomAt(b, random);
+                if (nextRoom == null) {
+                    return;
+                }
                 RoomConnector.connectRooms(nextRoom, lastRoom, engine.world, random, this);
             } catch (StackOverflowError e) {
                 return;
             }
+            lastRoom = addDoor(lastRoom, nextRoom, random);
         }
+        addPortal(random);
     }
 
     /**
@@ -243,9 +246,13 @@ public class WorldGenerator implements Serializable {
         Room r = null;
         for (int i = b.c1.x; i < b.c2.x; i++) {
             for (int j = b.c1.y; j < b.c2.y; j++) {
-                if (i == b.c1.x || i == b.c2.x - 1 || j == b.c1.y || j == b.c2.y - 1) {
+                Coords c = new Coords(i, j);
+                if (b.isWall(c)) {
+                    String d = engine.world[i][j].description();
+                    if (d.equals("door")) {
+                        continue;
+                    }
                     if (checkedWalls == door) {
-                        Coords c = new Coords(i, j);
                         if (!(b.getCorners().contains(c))) {
                             engine.world[i][j] = unlockedDoor;
                             r = new Room(b, new Coords(i, j));
@@ -267,6 +274,56 @@ public class WorldGenerator implements Serializable {
             }
         }
         return r;
+    }
+
+
+    private Room addDoor(Room r1, Room r2, Random random) {
+        Room r = random.nextInt(2) == 0 ? r1 : r2;
+        Bounds b = r.b;
+        int w = b.c2.x - b.c1.x;
+        int h = b.c2.y - b.c1.y;
+        int walls = w * 2 + h * 2 - 4;
+        int door = random.nextInt(walls - 1);
+        int checkedWalls = 0;
+        for (int i = b.c1.x; i < b.c2.x; i++) {
+            for (int j = b.c1.y; j < b.c2.y; j++) {
+                Coords c = new Coords(i, j);
+                if (door == checkedWalls) {
+                    String d = engine.world[i][j].description();
+                    if (d.equals("door") || b.getCorners().contains(c)) {
+                        return addDoor(r1, r2, random);
+                    } else {
+                        for (int x = i - 1; x <= i + 1; x++) {
+                            for (int y = j - 1; y <= j + 1; j++) {
+                                String desc = engine.world[x][y].description();
+                                if (desc.equals("grass") || desc.equals("flower")) {
+                                    engine.world[i][j] = unlockedDoor;
+                                    r.doorCoords = c;
+                                    return r;
+                                }
+                            }
+                        }
+                        return addDoor(r1, r2, random);
+                    }
+                }
+                if (b.isWall(c)) {
+                    checkedWalls++;
+                }
+            }
+        }
+        return addDoor(r1, r2, random);
+    }
+
+    private void addPortal(Random r) {
+        while (true) {
+            int x = r.nextInt(Engine.WIDTH);
+            int y = r.nextInt(Engine.HEIGHT);
+            String d = engine.world[x][y].description();
+            if (!d.equals("wall") && !d.equals("door")) {
+                engine.world[x][y] = portal;
+                return;
+            }
+        }
     }
 
     /**
