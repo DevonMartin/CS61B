@@ -86,10 +86,6 @@ public class WorldGenerator implements Serializable {
             this.b = b;
             this.doorCoords = doorCoords;
         }
-
-        ArrayList<Coords> getCorners() {
-            return b.getCorners();
-        }
     }
 
     Engine engine;
@@ -171,7 +167,7 @@ public class WorldGenerator implements Serializable {
         resetUsedTiles();
         generateBlankWorld(random);
         Room lastRoom = generateSpawnRoom(random);
-        Room nextRoom = null;
+        Room nextRoom;
         int rooms = random.nextInt(10) + 2;
         for (int i = 0; i < rooms; i++) {
             try {
@@ -320,7 +316,6 @@ public class WorldGenerator implements Serializable {
             int id = engine.worldIds[x][y];
             if (id != wall && id != lockedDoor && id != unlockedDoor) {
                 engine.worldIds[x][y] = portal;
-                System.out.println("Portal added at: [" + x + ", " + y + "]");
                 return;
             }
         }

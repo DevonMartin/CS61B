@@ -14,20 +14,11 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 public class Engine implements Serializable {
-    class Tile {
-        TETile tile;
-        int id;
-        Tile(TETile tile, int id) {
-            this.tile = tile;
-            this.id = id;
-        }
-    }
 
     private final transient TERenderer ter = new TERenderer();
     /* Feel free to change the width and height. */
     public static final int WIDTH = 80;
     public static final int HEIGHT = 30;
-    private TETile[][] world = new TETile[WIDTH][HEIGHT];
     int[][] worldIds = new int[WIDTH][HEIGHT];
     private WorldGenerator wg = new WorldGenerator(this);
     // random is used to generate a seed to later update random.
@@ -52,6 +43,7 @@ public class Engine implements Serializable {
     static final int unlockedDoor = 7;
     static final int player = 8;
     static final int portal = 9;
+    static final int menu = 10;
 
     private static class InputString {
         String s;
@@ -79,19 +71,6 @@ public class Engine implements Serializable {
         createDataDir();
     }
 
-
-    /**
-     * Creates a new Engine for testing. Creates required
-     * directories if they do not exist.
-     */
-    Engine(boolean testing) {
-        System.out.println("TODO: Don't forget to remove this option for production!");
-        populateTiles();
-        this.TESTING = testing;
-        createDataDir();
-        ter.initialize(WIDTH, HEIGHT);
-    }
-
     private void populateTiles() {
         Tiles.put(grass, Tileset.GRASS);
         Tiles.put(tree, Tileset.TREE);
@@ -103,12 +82,14 @@ public class Engine implements Serializable {
         Tiles.put(unlockedDoor, Tileset.UNLOCKED_DOOR);
         Tiles.put(player, Tileset.AVATAR);
         Tiles.put(portal, Tileset.PORTAL);
+        Tiles.put(menu, menuTile);
     }
 
     @Override
     public String toString() {
-        convertIdsToTiles();
+        TETile[][] world = convertIdsToTiles();
         StringBuilder sb = new StringBuilder();
+        sb.append("\n");
         for (int h = HEIGHT - 1; h >= 0; h--) {
             for (int w = 0; w < WIDTH; w++) {
                 sb.append(world[w][h].character());
@@ -210,7 +191,7 @@ public class Engine implements Serializable {
                 handleGameplayInput(inputString.next());
             }
         }
-        return world;
+        return convertIdsToTiles();
     }
 
     private void handleMmInput(char c) {
@@ -272,12 +253,12 @@ public class Engine implements Serializable {
     private void generateMainMenu() {
         for (int w = WIDTH / 2 - 8; w < WIDTH / 2 + 8; w++) {
             for (int h = HEIGHT / 2 + 9; h < HEIGHT / 2 + 12; h++) {
-                world[w][h] = menuTile;
+                worldIds[w][h] = menu;
             }
         }
         for (int w = WIDTH / 2 - 3; w < WIDTH / 2 + 3; w++) {
             for (int h = HEIGHT / 2 + 2; h < HEIGHT / 2 + 6; h++) {
-                world[w][h] = menuTile;
+                worldIds[w][h] = menu;
             }
         }
     }
@@ -358,7 +339,7 @@ public class Engine implements Serializable {
         for (int y = 10; y < 16; y++) {
             for (int i = 0; i < w; i++) {
                 int x = (int) (WIDTH / 2.0 - w / 2 + i);
-                world[x][y] = menuTile;
+                worldIds[x][y] = menu;
             }
         }
     }
@@ -387,8 +368,8 @@ public class Engine implements Serializable {
         int w = 20;
         for (int i = 0; i < w; i++) {
             int x = (int) (WIDTH / 2.0 - w / 2 + i);
-            world[x][11] = menuTile;
-            world[x][12] = menuTile;
+            worldIds[x][11] = menu;
+            worldIds[x][12] = menu;
         }
     }
 
@@ -441,9 +422,6 @@ public class Engine implements Serializable {
     private void loadGame() {
         File f = Paths.get(DATA_DIR, "/save.txt").toFile();
         if (f.exists()) {
-            if (TESTING) {
-                System.out.println();
-            }
             try {
                 FileInputStream file = new FileInputStream(f);
                 ObjectInputStream obj = new ObjectInputStream(file);
@@ -454,7 +432,7 @@ public class Engine implements Serializable {
                 this.random = e.random;
                 this.seed = e.seed;
                 this.wg = e.wg;
-                this.world = e.world;
+                this.worldIds = e.worldIds;
             } catch (IOException | ClassNotFoundException i) {
                 i.printStackTrace();
             }
@@ -464,15 +442,17 @@ public class Engine implements Serializable {
     }
 
     private void displayWorld() {
-        convertIdsToTiles();
+        TETile[][] world = convertIdsToTiles();
         ter.renderFrame(world);
     }
 
-    private void convertIdsToTiles() {
+    private TETile[][] convertIdsToTiles() {
+        TETile[][] world = new TETile[WIDTH][HEIGHT];
         for (int i = 0; i < WIDTH; i++) {
             for (int j = 0; j < HEIGHT; j++) {
                 world[i][j] = Tiles.get(worldIds[i][j]);
             }
         }
+        return world;
     }
 }
