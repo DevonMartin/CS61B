@@ -7,10 +7,10 @@ import static org.junit.Assert.*;
 public class TestRoomBuilding {
     @Test
     public void spawnRoom() {
-        for (int i = 0; i < 50000; i++) {
+        for (int i = 0; i < 500; i++) {
             Engine e = new Engine();
             e.interactWithInputString("ns");
-            assertTrue(e.toString(), e.playerOn().equals("floor"));
+            assertTrue(e.toString(), e.playerOn() == Engine.floor);
         }
     }
 }

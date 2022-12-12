@@ -2,21 +2,33 @@ package byow.Core;
 
 import byow.TileEngine.TERenderer;
 import byow.TileEngine.TETile;
+import byow.TileEngine.Tileset;
 import edu.princeton.cs.introcs.StdDraw;
 
 import java.awt.*;
 import java.io.*;
 import java.math.BigInteger;
 import java.nio.file.Paths;
+import java.util.Hashtable;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 public class Engine implements Serializable {
+    class Tile {
+        TETile tile;
+        int id;
+        Tile(TETile tile, int id) {
+            this.tile = tile;
+            this.id = id;
+        }
+    }
+
     private final transient TERenderer ter = new TERenderer();
     /* Feel free to change the width and height. */
     public static final int WIDTH = 80;
     public static final int HEIGHT = 30;
-    TETile[][] world = new TETile[WIDTH][HEIGHT];
+    private TETile[][] world = new TETile[WIDTH][HEIGHT];
+    int[][] worldIds = new int[WIDTH][HEIGHT];
     private WorldGenerator wg = new WorldGenerator(this);
     // random is used to generate a seed to later update random.
     Random random = new Random();
@@ -29,6 +41,17 @@ public class Engine implements Serializable {
     transient boolean onMainMenu = true;
     static String DATA_DIR = System.getProperty("user.dir") + "/.data";
     static TETile menuTile = new TETile(' ', Color.black, Color.white, "");
+    Hashtable<Integer, TETile> Tiles = new Hashtable<>();
+    static final int grass = 0;
+    static final int tree = 1;
+    static final int mountain = 2;
+    static final int flower = 3;
+    static final int wall = 4;
+    static final int floor = 5;
+    static final int lockedDoor = 6;
+    static final int unlockedDoor = 7;
+    static final int player = 8;
+    static final int portal = 9;
 
     private static class InputString {
         String s;
@@ -52,6 +75,7 @@ public class Engine implements Serializable {
      * directories if they do not exist.
      */
     Engine() {
+        populateTiles();
         createDataDir();
     }
 
@@ -62,13 +86,28 @@ public class Engine implements Serializable {
      */
     Engine(boolean testing) {
         System.out.println("TODO: Don't forget to remove this option for production!");
+        populateTiles();
         this.TESTING = testing;
         createDataDir();
         ter.initialize(WIDTH, HEIGHT);
     }
 
+    private void populateTiles() {
+        Tiles.put(grass, Tileset.GRASS);
+        Tiles.put(tree, Tileset.TREE);
+        Tiles.put(mountain, Tileset.MOUNTAIN);
+        Tiles.put(flower, Tileset.FLOWER);
+        Tiles.put(wall, Tileset.WALL);
+        Tiles.put(floor, Tileset.FLOOR);
+        Tiles.put(lockedDoor, Tileset.LOCKED_DOOR);
+        Tiles.put(unlockedDoor, Tileset.UNLOCKED_DOOR);
+        Tiles.put(player, Tileset.AVATAR);
+        Tiles.put(portal, Tileset.PORTAL);
+    }
+
     @Override
     public String toString() {
+        convertIdsToTiles();
         StringBuilder sb = new StringBuilder();
         for (int h = HEIGHT - 1; h >= 0; h--) {
             for (int w = 0; w < WIDTH; w++) {
@@ -79,7 +118,7 @@ public class Engine implements Serializable {
         return sb.toString();
     }
 
-    TETile playerOn() {
+    int playerOn() {
         return wg.playerOn;
     }
 
@@ -199,7 +238,7 @@ public class Engine implements Serializable {
         } else if (c == 'W' || c == 'A' || c == 'S' || c == 'D') {
             wg.move(c);
         } else if (c == ' ') {
-//                wg.interact();
+                wg.interact();
         } else if (c == ':') {
             if (inputString.hasNext() && inputString.next() == 'Q') {
                 save();
@@ -376,7 +415,8 @@ public class Engine implements Serializable {
                 wg.move(c);
                 displayWorld();
             } else if (c == ' ') {
-//                wg.interact();
+                wg.interact();
+                displayWorld();
             } else if (c == ':') {
                 if (listenForCharPress() == 'Q') {
                     save();
@@ -424,6 +464,15 @@ public class Engine implements Serializable {
     }
 
     private void displayWorld() {
+        convertIdsToTiles();
         ter.renderFrame(world);
+    }
+
+    private void convertIdsToTiles() {
+        for (int i = 0; i < WIDTH; i++) {
+            for (int j = 0; j < HEIGHT; j++) {
+                world[i][j] = Tiles.get(worldIds[i][j]);
+            }
+        }
     }
 }
