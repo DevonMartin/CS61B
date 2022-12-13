@@ -92,21 +92,20 @@ public class RoomConnector {
         }
     }
     private static Stack<Coords> checkTiles(Queue<Node> q, Node destination, ArrayList<Node> marked) {
-        if (q.isEmpty()) {
-            return null;
-        }
-        Node current = q.remove();
-        if (current.equals(destination)) {
-            Stack<Coords> s = new Stack<>();
-            current = current.parent;
-            while (current.parent != null) {
-                s.add(current.c);
+        while (!q.isEmpty()) {
+            Node current = q.remove();
+            if (current.equals(destination)) {
+                Stack<Coords> s = new Stack<>();
                 current = current.parent;
+                while (current.parent != null) {
+                    s.add(current.c);
+                    current = current.parent;
+                }
+                return s;
             }
-            return s;
+            addSurroundingTiles(q, current, marked);
         }
-        addSurroundingTiles(q, current, marked);
-        return checkTiles(q, destination, marked);
+        return null;
     }
     private static void addHallwayWalls(ArrayList<Coords> floorTiles, WorldGenerator wg) {
         floorTiles.forEach((t) -> {

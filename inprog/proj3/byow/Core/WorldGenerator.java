@@ -282,28 +282,29 @@ public class WorldGenerator implements Serializable {
         for (int i = b.c1.x; i < b.c2.x; i++) {
             for (int j = b.c1.y; j < b.c2.y; j++) {
                 Coords c = new Coords(i, j);
-                if (door == checkedWalls) {
-                    int d = engine.worldIds[i][j];
-                    if (d != unlockedDoor && d != lockedDoor && !b.getCorners().contains(c)) {
-                        for (int x = i - 1; x <= i + 1; x++) {
-                            for (int y = j - 1; y <= j + 1; y++) {
-                                if (x != i && y != j) {
-                                    continue;
-                                }
-                                int id = engine.worldIds[x][y];
-                                if (id == grass || id == flower || id == mountain || id == tree) {
-                                    engine.worldIds[i][j] = unlockedDoor;
-                                    r.doorCoords = c;
-                                    return r;
-                                }
+                if (door != checkedWalls) {
+                    if (b.isWall(c)) {
+                        checkedWalls++;
+                    }
+                    continue;
+                }
+                int id1 = engine.worldIds[i][j];
+                if (id1 != unlockedDoor && id1 != lockedDoor && !b.getCorners().contains(c)) {
+                    for (int x = i - 1; x <= i + 1; x++) {
+                        for (int y = j - 1; y <= j + 1; y++) {
+                            if (x != i && y != j) {
+                                continue;
+                            }
+                            int id2 = engine.worldIds[x][y];
+                            if (id2 == grass || id2 == flower || id2 == mountain || id2 == tree) {
+                                engine.worldIds[i][j] = unlockedDoor;
+                                r.doorCoords = c;
+                                return r;
                             }
                         }
                     }
-                    return addDoor(r1, r2, random);
                 }
-                if (b.isWall(c)) {
-                    checkedWalls++;
-                }
+                return addDoor(r1, r2, random);
             }
         }
         return addDoor(r1, r2, random);
