@@ -15,38 +15,41 @@ public class RoomConnector {
      */
     static void connectRooms(WorldGenerator.Room r1, WorldGenerator.Room r2, int[][] world, Random r, WorldGenerator wg) {
         RoomConnector.world = world;
-        Stack<Coords> path = getPath(r1, r2);
+        Stack<Coords> path = getPath(r1.doorCoords, r2.doorCoords);
         try {
             Coords c;
             while (path == null) {
                 c = r1.doorCoords;
                 world[c.x][c.y] = wall;
-                r1 = wg.generateRoomAt(r1.b, r);
+                r1 = wg.generateRoomAt(r1.b);
                 if (r1 == null) {
                     return;
                 }
-                path = getPath(r1, r2);
+                path = getPath(c, r2.doorCoords);
                 if (path == null) {
                     c = r2.doorCoords;
                     world[c.x][c.y] = wall;
-                    r2 = wg.generateRoomAt(r2.b, r);
+                    r2 = wg.generateRoomAt(r2.b);
                     if (r2 == null) {
                         return;
                     }
-                    path = getPath(r1, r2);
+                    path = getPath(c, r2.doorCoords);
                 }
             }
         } catch (StackOverflowError ignored) {}
         if (path == null) {
             return;
         }
-        boolean indoors = r.nextInt(4) != 0;
+        boolean indoors = r.nextInt(6) != 0;
         if (!indoors) {
             return;
         }
         ArrayList<Coords> hallway = new ArrayList<>();
         while (!path.isEmpty()) {
             Coords c = path.pop();
+            if (world[c.x][c.y] == unlockedDoor || world[c.x][c.y] == lockedDoor) {
+                continue;
+            }
             world[c.x][c.y] = floor;
             hallway.add(c);
             wg.usedTiles.add(c);
@@ -55,9 +58,9 @@ public class RoomConnector {
     }
 
 
-    private static Stack<Coords> getPath(Room r1, Room r2) {
-        Node current = new Node(r1.doorCoords);
-        Node destination = new Node(r2.doorCoords);
+    static Stack<Coords> getPath(Coords c1, Coords c2) {
+        Node current = new Node(c1);
+        Node destination = new Node(c2);
         ArrayList<Node> checkedTiles = new ArrayList<>();
         checkedTiles.add(current);
         Queue<Node> queue = new LinkedList<>();
@@ -71,14 +74,12 @@ public class RoomConnector {
                 continue;
             }
             for (int j = n.c.y - 1; j <= n.c.y + 1; j++) {
-                if (j <= 0 || j >= Engine.HEIGHT - 1) {
-                    continue;
-                }
-                if (!(i == n.c.x || j == n.c.y)) {
+                if (j <= 0 || j >= Engine.HEIGHT - 1
+                    || ((i == n.c.x) == (j == n.c.y))) {
                     continue;
                 }
                 int id = world[i][j];
-                if (!(WorldGenerator.replaceableTileDescriptions().contains(id))) {
+                if (!(WorldGenerator.replaceableTileIds().contains(id))) {
                     continue;
                 }
                 Coords c = new Coords(i, j);
