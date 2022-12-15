@@ -29,8 +29,8 @@ public class Engine implements Serializable {
     private long nextSeed;
     private transient InputString inputString;
     private transient boolean onMainMenu = true;
-    private static String DATA_DIR = System.getProperty("user.dir") + "/.data";
-    private static TETile menuTile = new TETile(' ', Color.black, Color.white, "");
+    private static final String DATA_DIR = System.getProperty("user.dir") + "/.data";
+    private static final TETile menuTile = new TETile(' ', Color.black, Color.white, "");
     private Hashtable<Integer, TETile> Tiles = new Hashtable<>();
     static final int grass = 0;
     static final int tree = 1;
@@ -71,7 +71,8 @@ public class Engine implements Serializable {
         public char next() {
             while (true) {
                 if (StdDraw.hasNextKeyTyped()) {
-                    char c = Character.toUpperCase(StdDraw.nextKeyTyped());
+                    char c = StdDraw.nextKeyTyped();
+                    c = Character.toUpperCase(c);
                     return c;
                 }
                 try {
@@ -98,7 +99,6 @@ public class Engine implements Serializable {
                     char c = server.clientNextKeyTyped();
                     c = Character.toUpperCase(c);
                     return c;
-                } else {
                 }
                 try {
                     TimeUnit.MILLISECONDS.sleep(1000);
@@ -204,12 +204,18 @@ public class Engine implements Serializable {
         onMainMenu = false;
     }
 
+    private void listenGameplay(InputDevice id, boolean display) {
+        listenGameplay(id, display, false, null);
+    }
+
     /**
      * Handles input during Gameplay.
      * @param id      An InputDevice used for obtaining input to the game.
      * @param display Whether the game is being displayed visually.
+     * @param remote  Whether the game is being sent to a client from a server.
+     * @param server  The server sending the client info, or null.
      */
-    private void listenGameplay(InputDevice id, boolean display) {
+    private void listenGameplay(InputDevice id, boolean display, boolean remote, BYOWServer server) {
         while (id.hasNext()) {
             char c = id.next();
             if (c == 'N') {
@@ -226,7 +232,7 @@ public class Engine implements Serializable {
                 }
             }
             if (display) {
-                displayWorld();
+                displayWorld(remote, server);
             }
         }
     }
@@ -417,6 +423,7 @@ public class Engine implements Serializable {
         } else {
             listenMainMenu(new InputKeyboard(), true);
         }
+        displayWorld(remote, server);
     }
 
     /**
@@ -497,6 +504,7 @@ public class Engine implements Serializable {
         ter.initialize(WIDTH, HEIGHT);
         server.sendCanvasConfig(WIDTH * 16, HEIGHT * 16);
         displayMainMenu(true, server);
+        listenGameplay(new InputClient(server), true, true, server);
     }
     public void interactWithKeyboards() {
         ter.initialize(WIDTH, HEIGHT);
