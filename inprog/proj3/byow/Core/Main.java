@@ -14,8 +14,8 @@ public class Main {
             engine.interactWithInputString(args[1]);
             System.out.println(engine);
         } else if (args.length == 2 && args[0].equals("-p")) {
-            System.out.println("Coming soon.");
-        // DO NOT CHANGE THESE LINES YET ;)
+            Engine engine = new Engine();
+            engine.interactWithRemoteClient(args[1]);
         } else {
             Engine engine = new Engine();
             engine.interactWithKeyboard();

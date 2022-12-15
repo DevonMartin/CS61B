@@ -1,5 +1,6 @@
 package byow.Core;
 
+import byow.Networking.BYOWServer;
 import byow.TileEngine.TERenderer;
 import byow.TileEngine.TETile;
 import byow.TileEngine.Tileset;
@@ -82,6 +83,32 @@ public class Engine implements Serializable {
         }
     }
 
+    private static class InputClient implements  InputDevice {
+        BYOWServer server;
+        InputClient(BYOWServer server) {
+            this.server = server;
+        }
+        @Override
+        public boolean hasNext() { return true; }
+
+        @Override
+        public char next() {
+            while (true) {
+                if (server.clientHasKeyTyped()) {
+                    char c = server.clientNextKeyTyped();
+                    c = Character.toUpperCase(c);
+                    return c;
+                } else {
+                }
+                try {
+                    TimeUnit.MILLISECONDS.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
     /**
      * Creates a new Engine in non-testing mode. Creates required
      * directories if they do not exist.
@@ -136,12 +163,16 @@ public class Engine implements Serializable {
         }
     }
 
+    private void listenMainMenu(InputDevice id, boolean display) {
+        listenMainMenu(id, display, false, null);
+    }
+
     /**
      * Handles input on the Main Menu.
      * @param id      An InputDevice used for obtaining input to the game.
      * @param display Whether the game is being displayed visually.
      */
-    private void listenMainMenu(InputDevice id, boolean display) {
+    private void listenMainMenu(InputDevice id, boolean display, boolean remote, BYOWServer server) {
         while (id.hasNext()) {
             char c = id.next();
             if (c == 'N') {
@@ -150,6 +181,9 @@ public class Engine implements Serializable {
                     if (display) {
                         displayGetSeed();
                         displaySeed(seed);
+                    }
+                    if (remote) {
+                        server.sendCanvas();
                     }
                     c = id.next();
                     seed = updateSeed(seed, c);
@@ -161,6 +195,9 @@ public class Engine implements Serializable {
                 loadGame();
                 break;
             } else if (c == 'Q') {
+                if (remote) {
+                    server.stopConnection();
+                }
                 System.exit(0);
             }
         }
@@ -361,17 +398,25 @@ public class Engine implements Serializable {
         listenGameplay(new InputKeyboard(), true);
     }
 
+    private void displayMainMenu() {
+        displayMainMenu(false, null);
+    }
+
     /**
      * Displays the blank world and adds appropriate menus. Listens
      * for input.
      */
-    private void displayMainMenu() {
+    private void displayMainMenu(boolean remote, BYOWServer server) {
         generateBlankWorld();
         generateMainMenu();
-        displayWorld();
+        displayWorld(remote, server);
         addMainMenuText();
-        StdDraw.show();
-        listenMainMenu(new InputKeyboard(), true);
+        if (remote) {
+            server.sendCanvas();
+            listenMainMenu(new InputClient(server), true, true, server);
+        } else {
+            listenMainMenu(new InputKeyboard(), true);
+        }
     }
 
     /**
@@ -386,6 +431,7 @@ public class Engine implements Serializable {
         StdDraw.text(WIDTH / 2.0, 20, "(N)ew Game");
         StdDraw.text(WIDTH / 2.0, 19, "(L)oad Game");
         StdDraw.text(WIDTH / 2.0, 18, "(Q)uit Game");
+        StdDraw.show();
     }
 
     /**
@@ -421,11 +467,69 @@ public class Engine implements Serializable {
         }
     }
 
+    private void displayWorld() {
+        displayWorld(false, null);
+    }
+
     /**
      * Renders the world to StdDraw.
      */
-    private void displayWorld() {
+    private void displayWorld(boolean remote, BYOWServer server) {
         TETile[][] world = makeWorld();
         ter.renderFrame(world);
+        if (remote) {
+            server.sendCanvas();
+        }
+    }
+
+
+
+
+    /******************************
+     *   REMOTE PLAY FUNCTIONS   *
+     /****************************/
+
+    /**
+     * Remote connection handler.
+     */
+    void interactWithRemoteClient(String port) {
+        BYOWServer server = connectToServer(port);
+        ter.initialize(WIDTH, HEIGHT);
+        server.sendCanvasConfig(WIDTH * 16, HEIGHT * 16);
+        displayMainMenu(true, server);
+    }
+    public void interactWithKeyboards() {
+        ter.initialize(WIDTH, HEIGHT);
+        displayMainMenu();
+        displayWorld();
+        listenGameplay(new InputKeyboard(), true);
+    }
+    public TETile[][] interactWithInputStrings(String input) {
+        generateBlankWorld();
+        generateMainMenu();
+        this.inputString = new InputString(input);
+        listenMainMenu(inputString, false);
+        if (!onMainMenu) {
+            generateWorld();
+            listenGameplay(inputString, false);
+        }
+        return makeWorld();
+    }
+
+    BYOWServer connectToServer(String port) {
+        int p;
+        try {
+            p = Integer.parseInt(port);
+        } catch (NumberFormatException e) {
+            p = 5001;
+        }
+        BYOWServer server = null;
+        try {
+            server = new BYOWServer(p);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(2);
+        }
+        return server;
     }
 }
