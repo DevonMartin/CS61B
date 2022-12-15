@@ -164,7 +164,7 @@ public class WorldGenerator implements Serializable {
     }
 
     /**
-     * Generates an entire world from scratch with a provided random.
+     * Generates an entire world from scratch with the engine's random.
      */
     void generateWorld() {
         resetUsedTiles();
