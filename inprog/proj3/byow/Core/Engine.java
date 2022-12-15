@@ -19,7 +19,7 @@ public class Engine implements Serializable {
     private final transient TERenderer ter = new TERenderer();
     public static final int WIDTH = 80;
     public static final int HEIGHT = 30;
-    int[][] worldIds = new int[WIDTH][HEIGHT];
+    int[][] worldIds = new int[WIDTH][HEIGHT + 1];
     private WorldGenerator wg = new WorldGenerator(this);
     // random is used to generate a seed to later update random.
     Random random = new Random();
@@ -27,11 +27,10 @@ public class Engine implements Serializable {
     private long seed = random.nextLong();
     // nextSeed is always the first long retrieved from a new random
     private long nextSeed;
-    private transient InputString inputString;
     private transient boolean onMainMenu = true;
     private static final String DATA_DIR = System.getProperty("user.dir") + "/.data";
-    private static final TETile menuTile = new TETile(' ', Color.black, Color.white, "");
-    private Hashtable<Integer, TETile> Tiles = new Hashtable<>();
+    private static final TETile menuTile = new TETile(' ', Color.black, Color.white, "menu");
+    private final Hashtable<Integer, TETile> Tiles = new Hashtable<>();
     static final int grass = 0;
     static final int tree = 1;
     static final int mountain = 2;
@@ -43,11 +42,14 @@ public class Engine implements Serializable {
     static final int player = 8;
     static final int portal = 9;
     static final int menu = 10;
+    int level = 1;
 
     private static class InputString implements InputDevice {
+        Engine engine;
         String s;
         int index = 0;
-        InputString(String s) {
+        InputString(Engine engine, String s) {
+            this.engine = engine;
             this.s = s;
         }
         public boolean hasNext() {
@@ -62,6 +64,10 @@ public class Engine implements Serializable {
     }
 
     private static class InputKeyboard implements InputDevice {
+        Engine engine;
+        InputKeyboard(Engine engine) {
+            this.engine = engine;
+        }
         @Override
         public boolean hasNext() {
             return true;
@@ -70,6 +76,9 @@ public class Engine implements Serializable {
         @Override
         public char next() {
             while (true) {
+                if (!engine.onMainMenu) {
+                    engine.displayWorld();
+                }
                 if (StdDraw.hasNextKeyTyped()) {
                     char c = StdDraw.nextKeyTyped();
                     c = Character.toUpperCase(c);
@@ -85,8 +94,10 @@ public class Engine implements Serializable {
     }
 
     private static class InputClient implements  InputDevice {
+        Engine engine;
         BYOWServer server;
-        InputClient(BYOWServer server) {
+        InputClient(Engine engine, BYOWServer server) {
+            this.engine = engine;
             this.server = server;
         }
         @Override
@@ -95,6 +106,9 @@ public class Engine implements Serializable {
         @Override
         public char next() {
             while (true) {
+                if (!engine.onMainMenu) {
+                    engine.displayWorld();
+                }
                 if (server.clientHasKeyTyped()) {
                     char c = server.clientNextKeyTyped();
                     c = Character.toUpperCase(c);
@@ -144,7 +158,7 @@ public class Engine implements Serializable {
         TETile[][] world = makeWorld();
         StringBuilder sb = new StringBuilder();
         sb.append("\n");
-        for (int h = HEIGHT - 1; h >= 0; h--) {
+        for (int h = HEIGHT; h >= 0; h--) {
             for (int w = 0; w < WIDTH; w++) {
                 sb.append(world[w][h].character());
             }
@@ -219,6 +233,7 @@ public class Engine implements Serializable {
         while (id.hasNext()) {
             char c = id.next();
             if (c == 'N') {
+                level = 1;
                 seed = random.nextLong();
                 generateWorld();
             } else if (c == 'W' || c == 'A' || c == 'S' || c == 'D') {
@@ -228,6 +243,9 @@ public class Engine implements Serializable {
             } else if (c == ':') {
                 if (id.hasNext() && id.next() == 'Q') {
                     save();
+                    if (remote) {
+                        server.stopConnection();
+                    }
                     System.exit(0);
                 }
             }
@@ -272,9 +290,9 @@ public class Engine implements Serializable {
     }
 
     private TETile[][] makeWorld() {
-        TETile[][] world = new TETile[WIDTH][HEIGHT];
+        TETile[][] world = new TETile[WIDTH][HEIGHT + 1];
         for (int i = 0; i < WIDTH; i++) {
-            for (int j = 0; j < HEIGHT; j++) {
+            for (int j = 0; j < HEIGHT + 1; j++) {
                 world[i][j] = Tiles.get(worldIds[i][j]);
             }
         }
@@ -300,7 +318,7 @@ public class Engine implements Serializable {
     public TETile[][] interactWithInputString(String input) {
         generateBlankWorld();
         generateMainMenu();
-        this.inputString = new InputString(input);
+        InputString inputString = new InputString(this, input);
         listenMainMenu(inputString, false);
         if (!onMainMenu) {
             generateWorld();
@@ -314,7 +332,6 @@ public class Engine implements Serializable {
      * the random with the saved seed before creation.
      */
     private void generateWorld() {
-//        System.out.println(seed);
         random.setSeed(seed);
         this.nextSeed = random.nextLong();
         wg.generateWorld();
@@ -398,10 +415,10 @@ public class Engine implements Serializable {
      * including inputs from the main menu.
      */
     public void interactWithKeyboard() {
-        ter.initialize(WIDTH, HEIGHT);
+        ter.initialize(WIDTH, HEIGHT + 1);
         displayMainMenu();
         displayWorld();
-        listenGameplay(new InputKeyboard(), true);
+        listenGameplay(new InputKeyboard(this), true);
     }
 
     private void displayMainMenu() {
@@ -419,9 +436,9 @@ public class Engine implements Serializable {
         addMainMenuText();
         if (remote) {
             server.sendCanvas();
-            listenMainMenu(new InputClient(server), true, true, server);
+            listenMainMenu(new InputClient(this, server), true, true, server);
         } else {
-            listenMainMenu(new InputKeyboard(), true);
+            listenMainMenu(new InputKeyboard(this), true);
         }
         displayWorld(remote, server);
     }
@@ -474,6 +491,25 @@ public class Engine implements Serializable {
         }
     }
 
+    private void displayHud() {
+        Font oldFont = StdDraw.getFont();
+        Font newFont = new Font("Monaco", Font.PLAIN, 12);
+        int x = (int) StdDraw.mouseX();
+        int y = (int) StdDraw.mouseY();
+        TETile tile;
+        if (x >= WIDTH || y >= HEIGHT) {
+            tile = menuTile;
+        } else {
+            tile = makeWorld()[x][y];
+        }
+        StdDraw.setFont(newFont);
+        StdDraw.textLeft(1, HEIGHT + 0.5, "Seed: " + seed);
+        StdDraw.text(WIDTH / 2.0, HEIGHT + 0.5, "Level: " + this.level);
+        StdDraw.textRight(WIDTH - 1, HEIGHT + 0.5, tile.description());
+        StdDraw.setFont(oldFont);
+        StdDraw.show();
+    }
+
     private void displayWorld() {
         displayWorld(false, null);
     }
@@ -484,6 +520,9 @@ public class Engine implements Serializable {
     private void displayWorld(boolean remote, BYOWServer server) {
         TETile[][] world = makeWorld();
         ter.renderFrame(world);
+        if (!onMainMenu) {
+            displayHud();
+        }
         if (remote) {
             server.sendCanvas();
         }
@@ -501,27 +540,10 @@ public class Engine implements Serializable {
      */
     void interactWithRemoteClient(String port) {
         BYOWServer server = connectToServer(port);
-        ter.initialize(WIDTH, HEIGHT);
-        server.sendCanvasConfig(WIDTH * 16, HEIGHT * 16);
+        ter.initialize(WIDTH, HEIGHT + 1);
+        server.sendCanvasConfig(WIDTH * 16, (HEIGHT + 1) * 16);
         displayMainMenu(true, server);
-        listenGameplay(new InputClient(server), true, true, server);
-    }
-    public void interactWithKeyboards() {
-        ter.initialize(WIDTH, HEIGHT);
-        displayMainMenu();
-        displayWorld();
-        listenGameplay(new InputKeyboard(), true);
-    }
-    public TETile[][] interactWithInputStrings(String input) {
-        generateBlankWorld();
-        generateMainMenu();
-        this.inputString = new InputString(input);
-        listenMainMenu(inputString, false);
-        if (!onMainMenu) {
-            generateWorld();
-            listenGameplay(inputString, false);
-        }
-        return makeWorld();
+        listenGameplay(new InputClient(this, server), true, true, server);
     }
 
     BYOWServer connectToServer(String port) {

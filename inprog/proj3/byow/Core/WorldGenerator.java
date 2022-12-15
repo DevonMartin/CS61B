@@ -141,6 +141,7 @@ public class WorldGenerator implements Serializable {
         int treeOdds = engine.random.nextInt(95) + 5;
         int mountainOdds = engine.random.nextInt(95) + 5;
         for (int w = 0; w < Engine.WIDTH; w++) {
+            engine.worldIds[w][HEIGHT] = Engine.menu;
             for (int h = 0; h < Engine.HEIGHT; h++) {
                 int rInt = engine.random.nextInt(flowerOdds);
                 if (rInt == 0) {
@@ -259,10 +260,7 @@ public class WorldGenerator implements Serializable {
                         engine.worldIds[i][j] = wall;
                     }
                     checkedWalls++;
-                } else {
-                    if (engine.worldIds[i][j] == player) {
-                        continue;
-                    }
+                } else if (engine.worldIds[i][j] != player) {
                     engine.worldIds[i][j] = floor;
                 }
                 usedTiles.add(new Coords(i, j));
@@ -374,6 +372,7 @@ public class WorldGenerator implements Serializable {
     void interact() {
         if (playerOn == portal) {
             generateWorld();
+            engine.level++;
         }
     }
 }
